@@ -2,14 +2,23 @@
 name = "augustc"
 version = "0.1.0"
 edition = "2021"
-authors = ["Augustium Team"]
-description = "The Augustium programming language compiler and virtual machine"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/augustium/augustc"
+authors = ["August Moreau <august@augustium.org>", "Augustium Team"]
+description = "The Augustium programming language compiler and virtual machine for blockchain smart contracts"
+license = "MIT"
+repository = "https://github.com/AugustMoreau/augustium"
 homepage = "https://augustium.org"
-keywords = ["blockchain", "smart-contracts", "compiler", "virtual-machine", "cryptocurrency"]
-categories = ["development-tools", "cryptography::cryptocurrencies"]
+documentation = "https://docs.augustium.org"
+keywords = ["blockchain", "smart-contracts", "compiler", "virtual-machine", "augustium"]
+categories = ["development-tools", "compilers", "cryptography::cryptocurrencies"]
 readme = "README.md"
+include = [
+    "src/**/*",
+    "examples/**/*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "INSTALL.md"
+]
 
 [lib]
 name = "augustc"
