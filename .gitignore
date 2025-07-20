@@ -1,0 +1,54 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock
+
+# Augustium compiled files
+*.avm
+*.aug.compiled
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+/build
+/dist
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Package manager
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development
+/local
+/tmp
+
+# Test artifacts
+/test-results
+/coverage
