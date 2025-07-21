@@ -82,7 +82,7 @@ jobs:
     name: Publish to GitHub Releases
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: always() && github.event_name == 'release' && !cancelled()
     
     steps:
     - name: Download all artifacts
@@ -111,9 +111,9 @@ jobs:
 
   publish-npm:
     name: Publish to NPM
-    runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'release' && !cancelled()
     
     steps:
     - uses: actions/checkout@v4
@@ -124,12 +124,70 @@ jobs:
         node-version: '18'
         registry-url: 'https://registry.npmjs.org'
     
-    - name: Prepare NPM package
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+    
+    - name: Prepare NPM package with binaries
       run: |
-        cp npm-package.json package.json
-        mkdir -p bin scripts
-        cp scripts/install.js scripts/
-        npm install --production
+        # Extract binaries from artifacts (only if they exist)
+        mkdir -p bin-temp
+        
+        # Linux x86_64
+        if [ -f "augustium-linux-x86_64.tar.gz/augustium-linux-x86_64.tar.gz" ]; then
+          tar -xzf augustium-linux-x86_64.tar.gz/augustium-linux-x86_64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-linux-x86_64 2>/dev/null || true
+          mv bin-temp/august bin/august-linux-x86_64 2>/dev/null || true
+        fi
+        
+        # Linux aarch64
+        if [ -f "augustium-linux-aarch64.tar.gz/augustium-linux-aarch64.tar.gz" ]; then
+          tar -xzf augustium-linux-aarch64.tar.gz/augustium-linux-aarch64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-linux-aarch64 2>/dev/null || true
+          mv bin-temp/august bin/august-linux-aarch64 2>/dev/null || true
+        fi
+        
+        # macOS x86_64
+        if [ -f "augustium-macos-x86_64.tar.gz/augustium-macos-x86_64.tar.gz" ]; then
+          tar -xzf augustium-macos-x86_64.tar.gz/augustium-macos-x86_64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-macos-x86_64 2>/dev/null || true
+          mv bin-temp/august bin/august-macos-x86_64 2>/dev/null || true
+        fi
+        
+        # macOS aarch64
+        if [ -f "augustium-macos-aarch64.tar.gz/augustium-macos-aarch64.tar.gz" ]; then
+          tar -xzf augustium-macos-aarch64.tar.gz/augustium-macos-aarch64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-macos-aarch64 2>/dev/null || true
+          mv bin-temp/august bin/august-macos-aarch64 2>/dev/null || true
+        fi
+        
+        # Windows x86_64
+        if [ -f "augustium-windows-x86_64.zip/augustium-windows-x86_64.zip" ]; then
+          unzip -q augustium-windows-x86_64.zip/augustium-windows-x86_64.zip -d bin-temp 2>/dev/null || true
+          mv bin-temp/augustc.exe bin/augustc-windows-x86_64.exe 2>/dev/null || true
+          mv bin-temp/august.exe bin/august-windows-x86_64.exe 2>/dev/null || true
+        fi
+        
+        # Windows aarch64
+        if [ -f "augustium-windows-aarch64.zip/augustium-windows-aarch64.zip" ]; then
+          unzip -q augustium-windows-aarch64.zip/augustium-windows-aarch64.zip -d bin-temp 2>/dev/null || true
+          mv bin-temp/augustc.exe bin/augustc-windows-aarch64.exe 2>/dev/null || true
+          mv bin-temp/august.exe bin/august-windows-aarch64.exe 2>/dev/null || true
+        fi
+        
+        # Clean up
+        rm -rf bin-temp
+        
+        # Make binaries executable (only existing ones)
+        find bin -name "augustc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+        find bin -name "august-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+        
+        # List available binaries
+        echo "Available binaries:"
+        ls -la bin/ || true
+        
+        # Update package.json version to match release
+        node -e "const pkg = require('./package.json'); pkg.version = process.env.GITHUB_REF_NAME.replace('v', ''); require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
     
     - name: Publish to NPM
       run: npm publish

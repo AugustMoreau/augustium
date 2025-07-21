@@ -21,6 +21,34 @@ Augustium is a modern programming language specifically designed for blockchain 
 
 ### Installation
 
+#### Option 1: npm (Recommended)
+
+```bash
+# Install globally
+npm install -g augustium
+
+# Verify installation
+augustc --version
+august --version
+
+# Create a new project
+august new my-project
+```
+
+#### Option 2: Use with npx (No installation)
+
+```bash
+# Create a project without installing
+npx augustium new my-project
+cd my-project
+
+# Use the tools
+npx augustc --help
+npx august build
+```
+
+#### Option 3: Build from source
+
 ```bash
 # Clone the repository
 git clone https://github.com/AugustMoreau/augustium.git

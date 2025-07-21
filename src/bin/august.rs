@@ -81,9 +81,61 @@ fn main() {
         "fmt" => handle_format(&args[2..]),
         "doc" => handle_doc(&args[2..]),
         "tree" => handle_tree(&args[2..]),
+        "generate-plugin" => handle_generate_plugin(&args[2..]),
         _ => {
             eprintln!("❌ Unknown command: {}", command);
             eprintln!("Run 'august help' for usage information.");
+            process::exit(1);
+        }
+    }
+}
+
+/// Handle plugin generation
+fn handle_generate_plugin(args: &[String]) {
+    if args.len() < 2 {
+        eprintln!("❌ Missing arguments for generate-plugin");
+        eprintln!("Usage: august generate-plugin <ide_type> --output-dir <path>");
+        process::exit(1);
+    }
+
+    let ide_type_str = &args[0];
+    let output_dir_str = if args.len() > 2 && args[1] == "--output-dir" {
+        &args[2]
+    } else {
+        eprintln!("❌ Missing --output-dir argument");
+        eprintln!("Usage: august generate-plugin <ide_type> --output-dir <path>");
+        process::exit(1);
+    };
+
+    let ide_type = match ide_type_str.as_str() {
+        "vscode" => augustc::ide_plugins::IdeType::VSCode,
+        _ => {
+            eprintln!("❌ Unsupported IDE type: {}", ide_type_str);
+            process::exit(1);
+        }
+    };
+
+    let config = augustc::ide_plugins::PluginConfig {
+        ide_type,
+        plugin_name: "augustium".to_string(),
+        version: "1.0.0".to_string(),
+        description: "Augustium language support".to_string(),
+        author: "August Moreau".to_string(),
+        features: vec![
+            augustc::ide_plugins::PluginFeature::SyntaxHighlighting,
+            augustc::ide_plugins::PluginFeature::Snippets,
+        ],
+        dependencies: vec![],
+        settings: std::collections::HashMap::new(),
+    };
+
+    let output_dir = PathBuf::from(output_dir_str);
+    let mut generator = augustc::ide_plugins::IdePluginGenerator::new(config, output_dir);
+
+    match generator.generate() {
+        Ok(_) => println!("✅ Successfully generated plugin for {}", ide_type_str),
+        Err(e) => {
+            eprintln!("❌ Failed to generate plugin: {}", e);
             process::exit(1);
         }
     }
