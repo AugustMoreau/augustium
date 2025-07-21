@@ -1,9 +1,8 @@
 // Cross-chain bridge support
 // Lets contracts talk to other blockchains like Ethereum, BSC, Polygon etc.
 
-use crate::ast::*;
 use crate::error::{CompilerError, SemanticError, SemanticErrorKind, SourceLocation};
-use crate::evm_compat::{EvmConfig, EvmTransaction};
+use crate::evm_compat::{EvmTransaction};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +22,7 @@ pub enum ChainId {
 
 impl ChainId {
     /// Get the numeric chain ID
+    #[allow(dead_code)]
     pub fn as_u64(&self) -> u64 {
         match self {
             ChainId::Ethereum => 1,
@@ -37,6 +37,7 @@ impl ChainId {
     }
     
     /// Get the chain name
+    #[allow(dead_code)]
     pub fn name(&self) -> &'static str {
         match self {
             ChainId::Ethereum => "Ethereum",
@@ -51,6 +52,7 @@ impl ChainId {
     }
     
     /// Get the native token symbol
+    #[allow(dead_code)]
     pub fn native_token(&self) -> &'static str {
         match self {
             ChainId::Ethereum => "ETH",
@@ -175,6 +177,7 @@ pub struct BridgeTransaction {
 }
 
 /// Cross-chain bridge implementation
+#[allow(dead_code)]
 pub struct CrossChainBridge {
     config: BridgeConfig,
     pending_transactions: HashMap<String, BridgeTransaction>,
@@ -184,6 +187,7 @@ pub struct CrossChainBridge {
 
 impl CrossChainBridge {
     /// Create a new cross-chain bridge
+    #[allow(dead_code)]
     pub fn new(config: BridgeConfig) -> Self {
         Self {
             config,
@@ -194,6 +198,7 @@ impl CrossChainBridge {
     }
     
     /// Initialize bridge with validators and relayers
+    #[allow(dead_code)]
     pub fn initialize(
         &mut self,
         validators: Vec<String>,
@@ -205,10 +210,11 @@ impl CrossChainBridge {
     }
     
     /// Submit a cross-chain message
+    #[allow(dead_code)]
     pub fn submit_message(
         &mut self,
         message: CrossChainMessage,
-        sender: &str,
+        _sender: &str,
     ) -> Result<String, CompilerError> {
         // Validate message
         self.validate_message(&message)?;
@@ -240,6 +246,7 @@ impl CrossChainBridge {
     }
     
     /// Confirm a cross-chain transaction
+    #[allow(dead_code)]
     pub fn confirm_transaction(
         &mut self,
         tx_id: &str,
@@ -274,6 +281,7 @@ impl CrossChainBridge {
     }
     
     /// Execute a cross-chain transaction
+    #[allow(dead_code)]
     pub fn execute_transaction(
         &mut self,
         tx_id: &str,
@@ -330,11 +338,13 @@ impl CrossChainBridge {
     }
     
     /// Get transaction status
+    #[allow(dead_code)]
     pub fn get_transaction_status(&self, tx_id: &str) -> Option<&BridgeTransaction> {
         self.pending_transactions.get(tx_id)
     }
     
     /// List pending transactions
+    #[allow(dead_code)]
     pub fn list_pending_transactions(&self) -> Vec<&BridgeTransaction> {
         self.pending_transactions.values()
             .filter(|tx| tx.status == BridgeStatus::Pending || tx.status == BridgeStatus::Confirmed)
@@ -342,6 +352,7 @@ impl CrossChainBridge {
     }
     
     /// Validate cross-chain message
+    #[allow(dead_code)]
     fn validate_message(&self, message: &CrossChainMessage) -> Result<(), CompilerError> {
         match message {
             CrossChainMessage::TokenTransfer { token, amount, source_chain, target_chain, .. } => {
@@ -393,6 +404,7 @@ impl CrossChainBridge {
     }
     
     /// Calculate bridge fees
+    #[allow(dead_code)]
     fn calculate_fees(&self, message: &CrossChainMessage) -> Result<u64, CompilerError> {
         let base_fee = self.config.fees.base_fee;
         let relayer_fee = self.config.fees.relayer_fee;
@@ -408,6 +420,7 @@ impl CrossChainBridge {
     }
     
     /// Generate execution transaction for target chain
+    #[allow(dead_code)]
     fn generate_execution_transaction(
         &self,
         message: &CrossChainMessage,
@@ -462,12 +475,14 @@ impl CrossChainBridge {
     }
     
     /// Generate unique transaction ID
-    fn generate_transaction_id(&self, message: &CrossChainMessage) -> String {
+    #[allow(dead_code)]
+    fn generate_transaction_id(&self, _message: &CrossChainMessage) -> String {
         // Simple ID generation (in real implementation, use proper hash)
         format!("bridge_tx_{}", self.current_timestamp())
     }
     
     /// Get current timestamp
+    #[allow(dead_code)]
     fn current_timestamp(&self) -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -476,6 +491,7 @@ impl CrossChainBridge {
     }
     
     /// Emit bridge event
+    #[allow(dead_code)]
     fn emit_bridge_event(&self, tx_id: &str, event_type: &str) -> Result<(), CompilerError> {
         // In real implementation, emit blockchain events
         println!("Bridge Event: {} - {}", event_type, tx_id);
@@ -483,6 +499,7 @@ impl CrossChainBridge {
     }
     
     /// Encode function selector (first 4 bytes of keccak256)
+    #[allow(dead_code)]
     fn encode_function_selector(&self, function_name: &str) -> [u8; 4] {
         // Simplified encoding
         let hash = self.simple_hash(function_name.as_bytes());
@@ -490,6 +507,7 @@ impl CrossChainBridge {
     }
     
     /// Encode Ethereum address
+    #[allow(dead_code)]
     fn encode_address(&self, address: &str) -> Result<Vec<u8>, CompilerError> {
         if address.len() != 42 || !address.starts_with("0x") {
             return Err(CompilerError::SemanticError(SemanticError {
@@ -514,6 +532,7 @@ impl CrossChainBridge {
     }
     
     /// Encode uint256
+    #[allow(dead_code)]
     fn encode_uint256(&self, value: u64) -> Vec<u8> {
         let mut bytes = vec![0u8; 32];
         let value_bytes = value.to_be_bytes();
@@ -522,6 +541,7 @@ impl CrossChainBridge {
     }
     
     /// Encode string
+    #[allow(dead_code)]
     fn encode_string(&self, s: &str) -> Vec<u8> {
         let mut encoded = Vec::new();
         
@@ -542,6 +562,7 @@ impl CrossChainBridge {
     }
     
     /// Simple hash function
+    #[allow(dead_code)]
     fn simple_hash(&self, data: &[u8]) -> Vec<u8> {
         let mut hash = vec![0u8; 32];
         for (i, &byte) in data.iter().enumerate() {
@@ -552,10 +573,12 @@ impl CrossChainBridge {
 }
 
 /// Cross-chain bridge factory
+#[allow(dead_code)]
 pub struct BridgeFactory;
 
 impl BridgeFactory {
     /// Create a bridge configuration for popular chain pairs
+    #[allow(dead_code)]
     pub fn create_eth_bsc_bridge() -> BridgeConfig {
         let mut bridge_contracts = HashMap::new();
         bridge_contracts.insert(ChainId::Ethereum, "0x1234567890123456789012345678901234567890".to_string());
@@ -618,6 +641,7 @@ impl BridgeFactory {
     }
     
     /// Create a bridge configuration for Ethereum-Polygon
+    #[allow(dead_code)]
     pub fn create_eth_polygon_bridge() -> BridgeConfig {
         let mut bridge_contracts = HashMap::new();
         bridge_contracts.insert(ChainId::Ethereum, "0xEthereumBridge".to_string());
@@ -666,6 +690,7 @@ pub mod utils {
     use super::*;
     
     /// Check if two chains are compatible for bridging
+    #[allow(dead_code)]
     pub fn are_chains_compatible(chain1: &ChainId, chain2: &ChainId) -> bool {
         // All EVM chains are compatible
         matches!((chain1, chain2), 
@@ -681,7 +706,8 @@ pub mod utils {
     }
     
     /// Estimate bridge time between chains
-    pub fn estimate_bridge_time(source: &ChainId, target: &ChainId) -> u64 {
+    #[allow(dead_code)]
+    pub fn estimate_bridge_time(source: &ChainId, _target: &ChainId) -> u64 {
         let source_confirmations = match source {
             ChainId::Ethereum => 12 * 15, // 12 blocks * 15 seconds
             ChainId::BinanceSmartChain => 15 * 3, // 15 blocks * 3 seconds
@@ -695,6 +721,7 @@ pub mod utils {
     }
     
     /// Calculate optimal gas price for chain
+    #[allow(dead_code)]
     pub fn calculate_optimal_gas_price(chain: &ChainId) -> u64 {
         match chain {
             ChainId::Ethereum => 20_000_000_000, // 20 gwei

@@ -217,10 +217,6 @@ fn parse_options(args: &[String]) -> CompilerOptions {
                     process::exit(1);
                 }
             }
-            "--run" | "-r" => {
-                options.run_immediately = true;
-                i += 1;
-            }
             "--verbose" | "-v" => {
                 options.verbose = true;
                 i += 1;
@@ -297,6 +293,7 @@ struct CompilerOptions {
 }
 
 /// Project configuration
+#[allow(dead_code)]
 #[derive(Debug)]
 struct ProjectConfig {
     name: String,
@@ -333,7 +330,7 @@ fn compile_file(source_file: &str, options: CompilerOptions) -> Result<()> {
         println!("Phase 2: Syntax Analysis");
     }
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse()?;
+    let mut ast = parser.parse()?;
     
     if options.debug {
         println!("Generated AST with {} top-level items", ast.items.len());
@@ -344,7 +341,7 @@ fn compile_file(source_file: &str, options: CompilerOptions) -> Result<()> {
         println!("Phase 3: Semantic Analysis");
     }
     let mut analyzer = SemanticAnalyzer::new();
-    let analyzed_ast = analyzer.analyze(&ast)?;
+    analyzer.analyze(&ast)?;
     
     if options.debug {
         println!("Semantic analysis completed");
@@ -356,13 +353,12 @@ fn compile_file(source_file: &str, options: CompilerOptions) -> Result<()> {
     }
     
     // Phase 3.5: Optimization (if enabled)
-    let mut optimized_ast = ast;
     if options.optimize {
         if options.debug {
             println!("Phase 3.5: AST Optimization");
         }
         let optimizer = Optimizer::new();
-        optimizer.optimize_ast(&mut optimized_ast)?;
+        optimizer.optimize_ast(&mut ast)?;
         
         if options.debug {
             println!("AST optimization completed");
@@ -374,7 +370,7 @@ fn compile_file(source_file: &str, options: CompilerOptions) -> Result<()> {
         println!("Phase 4: Code Generation");
     }
     let mut codegen = CodeGenerator::new();
-    let mut bytecode = codegen.generate(&optimized_ast)?;
+    let mut bytecode = codegen.generate(&ast)?;
     
     // Phase 4.5: Bytecode Optimization (if enabled)
     if options.optimize {
@@ -741,7 +737,7 @@ mod tests {
             }
         "#;
         
-        let mut temp_file = NamedTempFile::new().unwrap();
+        let temp_file = NamedTempFile::new().unwrap();
         fs::write(&temp_file, source).unwrap();
         
         let options = CompilerOptions {
@@ -767,7 +763,7 @@ mod tests {
             }
         "#;
         
-        let mut temp_file = NamedTempFile::new().unwrap();
+        let temp_file = NamedTempFile::new().unwrap();
         fs::write(&temp_file, source).unwrap();
         
         let options = CompilerOptions {

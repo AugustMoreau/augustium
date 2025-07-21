@@ -113,8 +113,8 @@ impl Signature {
     // Recover the public key from a signature (like Ethereum does)
     // This is pretty complex cryptography but essential for blockchain
     pub fn ecrecover(
-        message_hash: &AugVec<U8>,
-        signature: &AugVec<U8>,
+        _message_hash: &AugVec<U8>,
+        _signature: &AugVec<U8>,
         recovery_id: U8,
     ) -> Result<Address> {
         // For now, return a placeholder implementation
@@ -143,7 +143,7 @@ impl Signature {
     /// # Returns
     /// * `Result<Bool, CompilerError>` - True if signature is valid
     pub fn verify_signature(
-        message_hash: &[U8; 32],
+        _message_hash: &[U8; 32],
         signature: &[U8; 64],
         public_key: &[U8; 64],
     ) -> Result<Bool> {
@@ -390,8 +390,8 @@ mod tests {
     
     #[test]
     fn test_random_generation() {
-        let random_u256 = Random::secure_u256().unwrap();
-        let random_u8 = Random::secure_u8().unwrap();
+        let _random_u256 = Random::secure_u256().unwrap();
+        let _random_u8 = Random::secure_u8().unwrap();
         let random_bytes = Random::secure_bytes(10).unwrap();
         
         // Basic validation - should not panic and should have correct sizes

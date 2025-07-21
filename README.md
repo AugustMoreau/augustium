@@ -36,6 +36,37 @@ export PATH=$PATH:$(pwd)/target/release
 august --version
 ```
 
+### VS Code Extension
+
+Get the best development experience with our official VS Code extension:
+
+#### Installation Options:
+
+**Option 1: VS Code Marketplace**
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Augustium"
+4. Click Install
+
+**Option 2: Open VSX Registry**
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Augustium" by AugustMoreau
+4. Click Install
+
+**Option 3: Manual Installation**
+```bash
+# Download the latest .vsix file from releases
+code --install-extension augustium-1.0.4.vsix
+```
+
+#### Features:
+- 🎨 **Syntax Highlighting**: Full language support with rich colors
+- 📝 **Code Snippets**: Pre-built templates for contracts, functions, and patterns
+- 🔍 **IntelliSense**: Auto-completion and error detection
+- 🛠️ **Build Integration**: Compile and run directly from VS Code
+- 📚 **Documentation**: Hover hints and inline documentation
+
 ### Create Your First Contract
 
 ```bash

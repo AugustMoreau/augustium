@@ -2,7 +2,7 @@
 // Stack-based VM that handles contract execution, state, and security
 
 use crate::codegen::{Bytecode, Instruction, Value, ContractBytecode};
-use crate::error::{Result, VmError, VmErrorKind, SourceLocation};
+use crate::error::{Result, VmError, VmErrorKind};
 use std::collections::HashMap;
 
 // Stack size limit to prevent overflow attacks
@@ -46,13 +46,17 @@ impl Default for GasCosts {
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     pub caller: [u8; 20],
+    #[allow(dead_code)]
     pub origin: [u8; 20],
+    #[allow(dead_code)]
     pub gas_price: u64,
     pub gas_limit: u64,
     pub value: u64,
     pub block_number: u64,
     pub timestamp: u64,
+    #[allow(dead_code)]
     pub difficulty: u64,
+    #[allow(dead_code)]
     pub chain_id: u64,
 }
 
@@ -75,8 +79,11 @@ impl Default for ExecutionContext {
 /// Contract instance in the AVM
 #[derive(Debug, Clone)]
 pub struct ContractInstance {
+    #[allow(dead_code)]
     pub address: [u8; 20],
+    #[allow(dead_code)]
     pub bytecode: ContractBytecode,
+    #[allow(dead_code)]
     pub storage: HashMap<u32, Value>,
     pub balance: u64,
 }
@@ -87,26 +94,37 @@ struct CallFrame {
     instructions: Vec<Instruction>,
     pc: usize,
     locals: Vec<Value>,
+    #[allow(dead_code)]
     return_address: Option<usize>,
 }
 
 /// Event emitted by a contract
 #[derive(Debug, Clone)]
 pub struct Event {
+    #[allow(dead_code)]
     pub contract_address: [u8; 20],
+    #[allow(dead_code)]
     pub event_name: String,
+    #[allow(dead_code)]
     pub data: Vec<Value>,
+    #[allow(dead_code)]
     pub block_number: u64,
+    #[allow(dead_code)]
     pub transaction_hash: [u8; 32],
 }
 
 /// Transaction result
 #[derive(Debug, Clone)]
 pub struct TransactionResult {
+    #[allow(dead_code)]
     pub success: bool,
+    #[allow(dead_code)]
     pub gas_used: u64,
+    #[allow(dead_code)]
     pub return_value: Option<Value>,
+    #[allow(dead_code)]
     pub events: Vec<Event>,
+    #[allow(dead_code)]
     pub error: Option<String>,
 }
 
@@ -140,6 +158,7 @@ impl AVM {
     }
     
     /// Create a new AVM instance with custom context
+    #[allow(dead_code)]
     pub fn with_context(context: ExecutionContext) -> Self {
         Self {
             stack: Vec::new(),
@@ -155,11 +174,13 @@ impl AVM {
     }
     
     /// Enable debug mode
+    #[allow(dead_code)]
     pub fn set_debug_mode(&mut self, debug: bool) {
         self.debug_mode = debug;
     }
     
     /// Deploy a contract
+    #[allow(dead_code)]
     pub fn deploy_contract(
         &mut self,
         bytecode: ContractBytecode,
@@ -170,7 +191,7 @@ impl AVM {
         address[0] = (self.contracts.len() + 1) as u8;
         
         // Create contract instance
-        let mut contract = ContractInstance {
+        let contract = ContractInstance {
             address,
             bytecode: bytecode.clone(),
             storage: HashMap::new(),
@@ -203,6 +224,7 @@ impl AVM {
     }
     
     /// Call a contract function
+    #[allow(dead_code)]
     pub fn call_contract(
         &mut self,
         contract_address: [u8; 20],
@@ -792,14 +814,14 @@ impl AVM {
     }
     
     /// Load a contract field
-    fn load_field(&self, index: u32) -> Result<Value> {
+    fn load_field(&mut self, _index: u32) -> Result<Value> {
         // TODO: Implement contract field loading
         // For now, return a placeholder value
         Ok(Value::U32(0))
     }
     
     /// Store a contract field
-    fn store_field(&mut self, index: u32, value: Value) -> Result<()> {
+    fn store_field(&mut self, _index: u32, _value: Value) -> Result<()> {
         // TODO: Implement contract field storage
         Ok(())
     }
@@ -817,7 +839,7 @@ impl AVM {
     }
     
     /// Call a function
-    fn call_function(&mut self, offset: u32) -> Result<()> {
+    fn call_function(&mut self, _offset: u32) -> Result<()> {
         // TODO: Implement function calls
         Ok(())
     }
@@ -829,7 +851,7 @@ impl AVM {
     }
     
     /// Invoke a function by name
-    fn invoke_function(&mut self, function_name: &str) -> Result<()> {
+    fn invoke_function(&mut self, _function_name: &str) -> Result<()> {
         // TODO: Implement function invocation by name
         Ok(())
     }
@@ -867,7 +889,7 @@ impl AVM {
     }
     
     /// Transfer value between addresses
-    fn transfer(&mut self, to_address: &Value, amount: &Value) -> Result<()> {
+    fn transfer(&mut self, _to_address: &Value, _amount: &Value) -> Result<()> {
         // TODO: Implement value transfer
         Ok(())
     }

@@ -12,7 +12,7 @@ use crate::error::{CompilerError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 /// Deployment target network
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -47,6 +47,7 @@ impl DeploymentNetwork {
         }
     }
     
+    #[allow(dead_code)]
     pub fn chain_id(&self) -> u64 {
         match self {
             DeploymentNetwork::Ethereum => 1,
@@ -61,6 +62,7 @@ impl DeploymentNetwork {
         }
     }
     
+    #[allow(dead_code)]
     pub fn default_rpc_url(&self) -> String {
         match self {
             DeploymentNetwork::Ethereum => "https://mainnet.infura.io/v3/YOUR_PROJECT_ID".to_string(),
@@ -75,6 +77,7 @@ impl DeploymentNetwork {
         }
     }
     
+    #[allow(dead_code)]
     pub fn explorer_url(&self) -> String {
         match self {
             DeploymentNetwork::Ethereum => "https://etherscan.io".to_string(),
@@ -182,6 +185,7 @@ pub struct DeploymentPlan {
 }
 
 /// Deployment manager
+#[allow(dead_code)]
 pub struct DeploymentManager {
     config: DeploymentConfig,
     artifacts: Vec<DeploymentArtifact>,
@@ -191,6 +195,7 @@ pub struct DeploymentManager {
 
 impl DeploymentManager {
     /// Create a new deployment manager
+    #[allow(dead_code)]
     pub fn new(config: DeploymentConfig) -> Self {
         Self {
             config,
@@ -201,6 +206,7 @@ impl DeploymentManager {
     }
     
     /// Add contract for deployment
+    #[allow(dead_code)]
     pub fn add_contract(&mut self, contract: Contract, bytecode: String, abi: String) -> Result<()> {
         let artifact = DeploymentArtifact {
             contract_name: contract.name.name.clone(),
@@ -218,9 +224,9 @@ impl DeploymentManager {
     }
     
     /// Create deployment plan
+    #[allow(dead_code)]
     pub fn create_plan(&mut self, contracts: Vec<String>) -> Result<()> {
         let mut dependencies = HashMap::new();
-        let mut deployment_order = Vec::new();
         
         // Analyze contract dependencies
         for contract_name in &contracts {
@@ -229,7 +235,7 @@ impl DeploymentManager {
         }
         
         // Topological sort for deployment order
-        deployment_order = self.topological_sort(&dependencies)?;
+        let deployment_order = self.topological_sort(&dependencies)?;
         
         self.plan = Some(DeploymentPlan {
             contracts,
@@ -242,6 +248,7 @@ impl DeploymentManager {
     }
     
     /// Deploy all contracts according to plan
+    #[allow(dead_code)]
     pub fn deploy_all(&mut self) -> Result<Vec<DeploymentResult>> {
         let deployment_order = self.plan.as_ref()
             .ok_or_else(|| CompilerError::InternalError(
@@ -261,6 +268,7 @@ impl DeploymentManager {
     }
     
     /// Deploy a single contract
+    #[allow(dead_code)]
     pub fn deploy_contract(&mut self, contract_name: &str) -> Result<DeploymentResult> {
         let artifact = self.artifacts.iter()
             .find(|a| a.contract_name == contract_name)
@@ -296,6 +304,7 @@ impl DeploymentManager {
     }
     
     /// Verify deployed contract
+    #[allow(dead_code)]
     pub fn verify_contract(&self, result: &DeploymentResult) -> Result<()> {
         // Simulate contract verification
         println!("Verifying contract {} at address {}", result.contract_name, result.address);
@@ -309,6 +318,7 @@ impl DeploymentManager {
     }
     
     /// Save deployment artifact
+    #[allow(dead_code)]
     fn save_artifact(&self, artifact: &DeploymentArtifact, result: &DeploymentResult) -> Result<()> {
         let artifact_path = self.config.artifacts_path
             .join(format!("{}.json", artifact.contract_name));
@@ -326,6 +336,7 @@ impl DeploymentManager {
     }
     
     /// Analyze contract dependencies
+    #[allow(dead_code)]
     fn analyze_dependencies(&self, _contract_name: &str) -> Result<Vec<String>> {
         // In real implementation, this would analyze import statements
         // and inheritance relationships
@@ -333,6 +344,7 @@ impl DeploymentManager {
     }
     
     /// Topological sort for deployment order
+    #[allow(dead_code)]
     fn topological_sort(&self, dependencies: &HashMap<String, Vec<String>>) -> Result<Vec<String>> {
         let mut result = Vec::new();
         let mut visited = std::collections::HashSet::new();
@@ -349,6 +361,7 @@ impl DeploymentManager {
     }
     
     /// DFS visit for topological sort
+    #[allow(dead_code)]
     fn dfs_visit(
         &self,
         contract: &str,
@@ -383,16 +396,19 @@ impl DeploymentManager {
     }
     
     /// Get deployment results
+    #[allow(dead_code)]
     pub fn get_results(&self) -> &[DeploymentResult] {
         &self.results
     }
     
     /// Get deployment plan
+    #[allow(dead_code)]
     pub fn get_plan(&self) -> Option<&DeploymentPlan> {
         self.plan.as_ref()
     }
     
     /// Rollback deployment
+    #[allow(dead_code)]
     pub fn rollback(&mut self, contract_name: &str) -> Result<()> {
         // In real implementation, this would:
         // 1. Mark contract as inactive
@@ -405,10 +421,12 @@ impl DeploymentManager {
 }
 
 /// Deployment factory for creating common configurations
+#[allow(dead_code)]
 pub struct DeploymentFactory;
 
 impl DeploymentFactory {
     /// Create development deployment configuration
+    #[allow(dead_code)]
     pub fn development_config() -> DeploymentConfig {
         DeploymentConfig {
             network: DeploymentNetwork::Localhost,
@@ -430,6 +448,7 @@ impl DeploymentFactory {
     }
     
     /// Create testnet deployment configuration
+    #[allow(dead_code)]
     pub fn testnet_config(network: DeploymentNetwork) -> DeploymentConfig {
         DeploymentConfig {
             network,
@@ -451,6 +470,7 @@ impl DeploymentFactory {
     }
     
     /// Create mainnet deployment configuration
+    #[allow(dead_code)]
     pub fn mainnet_config(network: DeploymentNetwork) -> DeploymentConfig {
         DeploymentConfig {
             network,
@@ -480,6 +500,7 @@ pub mod utils {
     use super::*;
     
     /// Estimate deployment gas cost
+    #[allow(dead_code)]
     pub fn estimate_gas_cost(bytecode: &str, gas_price: u64) -> u64 {
         let bytecode_size = bytecode.len() / 2; // Convert hex to bytes
         let base_gas = 21000; // Base transaction cost
@@ -490,6 +511,7 @@ pub mod utils {
     }
     
     /// Generate deployment script
+    #[allow(dead_code)]
     pub fn generate_deployment_script(
         contracts: &[String],
         network: &DeploymentNetwork,
@@ -543,6 +565,7 @@ main()
     }
     
     /// Validate deployment configuration
+    #[allow(dead_code)]
     pub fn validate_config(config: &DeploymentConfig) -> Result<()> {
         // Check private key environment variable
         if config.private_key_env.is_empty() {
@@ -581,6 +604,7 @@ main()
     }
     
     /// Generate deployment documentation
+    #[allow(dead_code)]
     pub fn generate_documentation(results: &[DeploymentResult]) -> String {
         let mut doc = String::from("# Deployment Report\n\n");
         
@@ -604,7 +628,9 @@ main()
 }
 
 // Add rand dependency for address generation simulation
+#[allow(dead_code)]
 mod rand {
+    #[allow(dead_code)]
     pub fn random<T>() -> T 
     where 
         T: From<u64>
@@ -620,12 +646,15 @@ mod rand {
 }
 
 // Add chrono-like functionality for timestamps
+#[allow(dead_code)]
 mod chrono {
     use std::time::{SystemTime, UNIX_EPOCH};
     
+    #[allow(dead_code)]
     pub struct Utc;
     
     impl Utc {
+        #[allow(dead_code)]
         pub fn now() -> DateTime {
             DateTime {
                 timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
@@ -633,11 +662,13 @@ mod chrono {
         }
     }
     
+    #[allow(dead_code)]
     pub struct DateTime {
         timestamp: u64,
     }
     
     impl DateTime {
+        #[allow(dead_code)]
         pub fn format(&self, _format: &str) -> String {
             format!("2024-01-01 12:00:00 UTC") // Simplified for demo
         }

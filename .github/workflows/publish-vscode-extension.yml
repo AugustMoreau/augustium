@@ -1,0 +1,120 @@
+name: Publish VS Code Extension
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Extension version to publish'
+        required: true
+        default: '1.0.0'
+
+env:
+  EXTENSION_NAME: augustium
+
+jobs:
+  build-extension:
+    name: Build VS Code Extension
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'vscode-extension/package-lock.json'
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Generate VS Code extension
+      run: |
+        cargo run --bin august -- generate-plugin vscode --output-dir vscode-extension
+    
+    - name: Install dependencies
+      working-directory: vscode-extension
+      run: npm install
+    
+    - name: Compile TypeScript
+      working-directory: vscode-extension
+      run: npm run compile
+    
+    - name: Install vsce (VS Code Extension Manager)
+      run: npm install -g @vscode/vsce
+    
+    - name: Install ovsx (Open VSX CLI)
+      run: npm install -g ovsx
+    
+    - name: Package extension
+      working-directory: vscode-extension
+      run: vsce package
+    
+    - name: Upload extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vscode-extension
+        path: vscode-extension/*.vsix
+
+  publish-marketplace:
+    name: Publish to VS Code Marketplace
+    needs: build-extension
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: vscode-extension
+    
+    - name: Install vsce
+      run: npm install -g @vscode/vsce
+    
+    - name: Publish to VS Code Marketplace
+      run: vsce publish --packagePath *.vsix
+      env:
+        VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+
+  publish-openvsx:
+    name: Publish to Open VSX Registry
+    needs: build-extension
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: vscode-extension
+    
+    - name: Install ovsx
+      run: npm install -g ovsx
+    
+    - name: Publish to Open VSX Registry
+      run: ovsx publish *.vsix
+      env:
+        OVSX_PAT: ${{ secrets.OPEN_VSX_TOKEN }}
+
+  publish-github-release:
+    name: Attach to GitHub Release
+    needs: build-extension
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: vscode-extension
+    
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: '*.vsix'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

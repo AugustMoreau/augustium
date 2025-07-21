@@ -163,11 +163,58 @@ august run
 
 ## IDE Integration
 
-After installing Augustium, set up your development environment:
+After installing Augustium, set up your development environment for the best coding experience:
 
-### VS Code
-1. Install the "Augustium Language Support" extension
-2. Open an `.aug` file to activate syntax highlighting
+### VS Code (Recommended)
+
+The official Augustium VS Code extension provides comprehensive language support:
+
+#### Installation Methods:
+
+**Method 1: VS Code Marketplace**
+1. Open VS Code
+2. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open Extensions
+3. Search for "Augustium"
+4. Click "Install" on the extension by AugustMoreau
+
+**Method 2: Open VSX Registry**
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for "Augustium" by AugustMoreau
+4. Click "Install"
+
+**Method 3: Command Line**
+```bash
+# Install from VS Code Marketplace
+code --install-extension AugustMoreau.augustium
+
+# Or install manually downloaded .vsix file
+code --install-extension augustium-1.0.4.vsix
+```
+
+**Method 4: Manual Download**
+1. Download the latest `.vsix` file from [GitHub Releases](https://github.com/AugustMoreau/augustium/releases)
+2. In VS Code: `Ctrl+Shift+P` → "Extensions: Install from VSIX"
+3. Select the downloaded file
+
+#### Extension Features:
+- 🎨 **Rich Syntax Highlighting**: Full language support with semantic colors
+- 📝 **Smart Code Snippets**: Pre-built templates for:
+  - Contract structures
+  - Function definitions
+  - Common DeFi patterns
+  - Event declarations
+- 🔍 **IntelliSense**: Auto-completion and intelligent suggestions
+- ⚡ **Build Integration**: Compile and run directly from VS Code
+- 🐛 **Error Detection**: Real-time syntax and semantic error highlighting
+- 📚 **Hover Documentation**: Inline help and documentation
+- 🔧 **Code Formatting**: Automatic code formatting and style enforcement
+
+#### Getting Started with VS Code:
+1. Install the extension using any method above
+2. Create a new `.aug` file or open an existing Augustium project
+3. The extension will automatically activate
+4. Use `Ctrl+Shift+P` and search "Augustium" to see available commands
 
 ### IntelliJ IDEA
 1. Install the Augustium plugin from the marketplace

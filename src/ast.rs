@@ -4,7 +4,7 @@
 //! of Augustium source code.
 
 use crate::error::SourceLocation;
-use std::collections::HashMap;
+
 
 /// A complete Augustium source file
 #[derive(Debug, Clone)]

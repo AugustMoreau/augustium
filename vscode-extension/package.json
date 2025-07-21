@@ -1,0 +1,46 @@
+{
+    "name": "augustium",
+    "displayName": "Augustium",
+    "description": "Language support for Augustium smart contract development",
+    "version": "1.0.4",
+    "publisher": "AugustMoreau",
+    "icon": "icon.png",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "augustium",
+            "aliases": ["Augustium", "augustium"],
+            "extensions": [".aug"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "augustium",
+            "scopeName": "source.augustium",
+            "path": "./syntaxes/augustium.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "augustium",
+            "path": "./snippets/augustium.json"
+        }]
+    },
+    "activationEvents": [
+        "onLanguage:augustium",
+        "workspaceContains:**/*.aug"
+    ],
+    "main": "./out/extension.js",
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "typescript": "^4.4.0"
+    }
+}

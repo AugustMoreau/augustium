@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 // Individual VM instructions that our bytecode is made of
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum Instruction {
     // Stack operations
     Push(Value),
@@ -105,6 +106,7 @@ pub enum Value {
 
 impl Value {
     /// Get the type of this value
+    #[allow(dead_code)]
     pub fn get_type(&self) -> Type {
         match self {
             Value::U8(_) => Type::U8,
@@ -147,7 +149,9 @@ impl Value {
 #[derive(Debug, Clone)]
 pub struct Bytecode {
     pub instructions: Vec<Instruction>,
+    #[allow(dead_code)]
     pub constants: Vec<Value>,
+    #[allow(dead_code)]
     pub functions: HashMap<String, u32>, // Function name -> instruction offset
     pub contracts: HashMap<String, ContractBytecode>,
 }
@@ -171,15 +175,19 @@ pub struct ContractBytecode {
     pub constructor: Vec<Instruction>,
     pub functions: HashMap<String, Vec<Instruction>>,
     pub fields: HashMap<String, u32>, // Field name -> field index
+    #[allow(dead_code)]
     pub events: HashMap<String, Vec<Type>>, // Event name -> parameter types
 }
 
 /// Local variable information
 #[derive(Debug, Clone)]
 struct LocalVariable {
+    #[allow(dead_code)]
     name: String,
+    #[allow(dead_code)]
     var_type: Type,
     index: u32,
+    #[allow(dead_code)]
     mutable: bool,
 }
 
@@ -274,8 +282,8 @@ impl CodeGenerator {
     }
     
     /// Generate bytecode for a source file
-    pub fn generate(&mut self, source_file: &SourceFile) -> Result<Bytecode> {
-        for item in &source_file.items {
+    pub fn generate(&mut self, ast: &SourceFile) -> Result<Bytecode> {
+        for item in &ast.items {
             self.generate_item(item)?;
         }
         
@@ -549,7 +557,7 @@ impl CodeGenerator {
         self.context.push_loop_labels(loop_end, loop_start);
         
         // Add loop variable
-        let loop_var_index = self.context.add_local(
+        let _loop_var_index = self.context.add_local(
             for_stmt.variable.name.clone(),
             Type::U32, // Placeholder
             false,

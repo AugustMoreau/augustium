@@ -1,6 +1,6 @@
 [package]
 name = "augustc"
-version = "0.1.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["August Moreau <august@augustium.org>", "Augustium Team"]
 description = "The Augustium programming language compiler and virtual machine for blockchain smart contracts"

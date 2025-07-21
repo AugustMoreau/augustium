@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::semantic::SemanticAnalyzer;
-use crate::error::CompilerError;
+
 
 /// LSP Server state
 pub struct LanguageServer {
@@ -21,6 +21,7 @@ pub struct LanguageServer {
 /// Document representation
 #[derive(Debug, Clone)]
 struct Document {
+    #[allow(dead_code)]
     uri: String,
     content: String,
     version: i32,
@@ -76,11 +77,14 @@ struct Position {
 /// LSP Request/Response types
 #[derive(Debug, Deserialize)]
 struct LSPMessage {
+    #[allow(dead_code)]
     jsonrpc: String,
     id: Option<Value>,
     method: Option<String>,
     params: Option<Value>,
+    #[allow(dead_code)]
     result: Option<Value>,
+    #[allow(dead_code)]
     error: Option<Value>,
 }
 
@@ -260,7 +264,7 @@ impl LanguageServer {
     }
 
     /// Handle completion request
-    fn handle_completion(&self, id: Option<Value>, params: Option<Value>) -> Option<Value> {
+    fn handle_completion(&self, id: Option<Value>, _params: Option<Value>) -> Option<Value> {
         let completions = vec![
             CompletionItem {
                 label: "contract".to_string(),
@@ -314,7 +318,7 @@ impl LanguageServer {
     }
 
     /// Handle hover request
-    fn handle_hover(&self, id: Option<Value>, params: Option<Value>) -> Option<Value> {
+    fn handle_hover(&self, id: Option<Value>, _params: Option<Value>) -> Option<Value> {
         Some(json!({
             "jsonrpc": "2.0",
             "id": id,
@@ -328,7 +332,7 @@ impl LanguageServer {
     }
 
     /// Handle go-to-definition request
-    fn handle_definition(&self, id: Option<Value>, params: Option<Value>) -> Option<Value> {
+    fn handle_definition(&self, id: Option<Value>, _params: Option<Value>) -> Option<Value> {
         Some(json!({
             "jsonrpc": "2.0",
             "id": id,
@@ -337,7 +341,7 @@ impl LanguageServer {
     }
 
     /// Handle formatting request
-    fn handle_formatting(&self, id: Option<Value>, params: Option<Value>) -> Option<Value> {
+    fn handle_formatting(&self, id: Option<Value>, _params: Option<Value>) -> Option<Value> {
         Some(json!({
             "jsonrpc": "2.0",
             "id": id,

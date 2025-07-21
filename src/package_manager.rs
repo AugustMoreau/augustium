@@ -1,10 +1,9 @@
 // Package manager - handles dependencies and project configs
 // Works with Aug.toml files
 
-use std::collections::{HashMap, BTreeMap};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::io::{self, Write};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{CompilerError, Result};
@@ -17,8 +16,8 @@ pub struct PackageManager {
     registry: PackageRegistry,
     /// Local package cache
     cache: PackageCache,
-    /// Dependency resolver
-    resolver: DependencyResolver,
+    /// Dependency resolver (reserved for future use)
+    _resolver: DependencyResolver,
 }
 
 /// Project configuration (Aug.toml)
@@ -92,7 +91,9 @@ pub struct ProfileConfig {
 #[derive(Debug)]
 pub struct PackageRegistry {
     pub registry_url: String,
+    #[allow(dead_code)]
     pub auth_token: Option<String>,
+    #[allow(dead_code)]
     pub timeout: std::time::Duration,
 }
 
@@ -106,10 +107,15 @@ pub struct PackageCache {
 /// Cached package information
 #[derive(Debug, Clone)]
 pub struct CachedPackage {
+    #[allow(dead_code)]
     pub name: String,
+    #[allow(dead_code)]
     pub version: String,
+    #[allow(dead_code)]
     pub path: PathBuf,
+    #[allow(dead_code)]
     pub metadata: PackageMetadata,
+    #[allow(dead_code)]
     pub last_updated: std::time::SystemTime,
 }
 
@@ -141,13 +147,17 @@ pub struct Target {
 /// Dependency resolver
 #[derive(Debug)]
 pub struct DependencyResolver {
+    #[allow(dead_code)]
     pub resolution_strategy: ResolutionStrategy,
+    #[allow(dead_code)]
     pub allow_prerelease: bool,
+    #[allow(dead_code)]
     pub offline: bool,
 }
 
 /// Dependency resolution strategy
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ResolutionStrategy {
     Minimal,
     MaximallyCompatible,
@@ -167,14 +177,16 @@ pub struct ResolvedPackage {
     pub name: String,
     pub version: String,
     pub source: PackageSource,
+    #[allow(dead_code)]
     pub dependencies: Vec<String>,
+    #[allow(dead_code)]
     pub features: Vec<String>,
 }
 
 /// Package source
 #[derive(Debug, Clone)]
 pub enum PackageSource {
-    Registry { url: String },
+    Registry { #[allow(dead_code)] url: String },
     Git { url: String, rev: String },
     Path { path: PathBuf },
     Local,
@@ -184,7 +196,9 @@ pub enum PackageSource {
 #[derive(Debug)]
 pub struct InstallResult {
     pub installed: Vec<String>,
+    #[allow(dead_code)]
     pub updated: Vec<String>,
+    #[allow(dead_code)]
     pub removed: Vec<String>,
     pub warnings: Vec<String>,
 }
@@ -209,6 +223,7 @@ impl Default for DependencyResolver {
     }
 }
 
+#[allow(dead_code)]
 impl PackageManager {
     /// Create a new package manager
     pub fn new() -> Self {
@@ -223,7 +238,7 @@ impl PackageManager {
                 cache_dir,
                 packages: HashMap::new(),
             },
-            resolver: DependencyResolver::default(),
+            _resolver: DependencyResolver::default(),
         }
     }
 
@@ -643,6 +658,7 @@ impl PackageManager {
 }
 
 /// Create a new package manager instance
+#[allow(dead_code)]
 pub fn create_package_manager() -> PackageManager {
     PackageManager::new()
 }

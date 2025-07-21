@@ -28,12 +28,14 @@ impl From<OptimizationError> for crate::error::CompilerError {
 /// Trait for optimization passes
 pub trait OptimizationPass {
     fn run(&self, ast: &mut SourceFile) -> Result<()>;
+    #[allow(dead_code)]
     fn name(&self) -> &str;
 }
 
 /// Bytecode optimization trait
 pub trait BytecodeOptimizationPass {
     fn run(&self, bytecode: &mut Bytecode) -> Result<()>;
+    #[allow(dead_code)]
     fn name(&self) -> &str;
 }
 
@@ -552,7 +554,7 @@ impl RedundantInstructionElimination {
                 // Remove unreachable code after Return
                 Instruction::Return => {
                     // Remove instructions until next label or end
-                    let mut j = i + 1;
+                    let j = i + 1;
                     while j < instructions.len() {
                         match &instructions[j] {
                             Instruction::Jump(_) | Instruction::JumpIf(_) | Instruction::JumpIfNot(_) => break,

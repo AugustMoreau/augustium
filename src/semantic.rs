@@ -7,6 +7,7 @@ use std::collections::{HashMap, HashSet};
 
 // Info about each variable/function we've seen
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Symbol {
     pub name: String,
     pub symbol_type: SymbolType,
@@ -16,6 +17,7 @@ pub struct Symbol {
 
 /// Types of symbols in the symbol table
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum SymbolType {
     Variable(Type),
     Function {
@@ -102,6 +104,7 @@ pub struct SemanticAnalyzer {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SafetyIssue {
     pub severity: SafetySeverity,
     pub issue_type: SafetyIssueType,
@@ -111,6 +114,7 @@ pub struct SafetyIssue {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum SafetySeverity {
     Low,
     Medium,
@@ -119,6 +123,7 @@ pub enum SafetySeverity {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum SafetyIssueType {
     PotentialReentrancy,
     ArithmeticOverflow,
@@ -870,7 +875,7 @@ impl SemanticAnalyzer {
     /// Analyze a for statement
     fn analyze_for_statement(&mut self, for_stmt: &ForStatement) -> Result<()> {
         // Analyze iterable expression
-        let iterable_type = self.analyze_expression(&for_stmt.iterable)?;
+        let _iterable_type = self.analyze_expression(&for_stmt.iterable)?;
         
         // TODO: Check if iterable_type is actually iterable
         // For now, we'll assume it's valid
@@ -904,7 +909,7 @@ impl SemanticAnalyzer {
     /// Analyze a match statement
     fn analyze_match_statement(&mut self, match_stmt: &MatchStatement) -> Result<()> {
         // Analyze match expression
-        let match_type = self.analyze_expression(&match_stmt.expression)?;
+        let _match_type = self.analyze_expression(&match_stmt.expression)?;
         
         // Analyze each match arm
         for arm in &match_stmt.arms {
@@ -1358,7 +1363,7 @@ impl SemanticAnalyzer {
     
     /// Analyze an index expression
     fn analyze_index_expression(&mut self, index_expr: &IndexExpression) -> Result<Type> {
-        let object_type = self.analyze_expression(&index_expr.object)?;
+        let _object_type = self.analyze_expression(&index_expr.object)?;
         let index_type = self.analyze_expression(&index_expr.index)?;
         
         // Index must be integer
@@ -1533,6 +1538,7 @@ impl SemanticAnalyzer {
     }
     
     /// Perform safety analysis on the analyzed code
+    #[allow(dead_code)]
     pub fn get_safety_issues(&self) -> &Vec<SafetyIssue> {
         &self.safety_issues
     }

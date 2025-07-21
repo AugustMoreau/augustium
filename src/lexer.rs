@@ -102,9 +102,11 @@ pub enum TokenType {
     At,             // @
     Hash,           // #
     Dollar,         // $
+    #[allow(dead_code)]
     Underscore,     // _
-    
+
     // Special tokens
+    #[allow(dead_code)]
     Newline,
     Eof,
     
@@ -230,7 +232,7 @@ impl Lexer {
     }
     
     /// Get the next token from the input
-    fn next_token(&mut self) -> Result<Option<Token>> {
+    pub fn next_token(&mut self) -> Result<Option<Token>> {
         self.skip_whitespace();
         
         if self.is_at_end() {
@@ -635,13 +637,7 @@ impl Lexer {
     }
     
     /// Get the next character without advancing
-    fn peek_next(&self) -> char {
-        if self.position + 1 >= self.input.len() {
-            '\0'
-        } else {
-            self.input[self.position + 1]
-        }
-    }
+
     
     /// Advance to the next character and return the current one
     fn advance(&mut self) -> char {

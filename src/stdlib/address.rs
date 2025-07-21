@@ -3,8 +3,7 @@
 //! This module provides utilities for handling blockchain addresses,
 //! including validation, formatting, and address-related operations.
 
-use crate::error::{Result, VmError, VmErrorKind, CompilerError};
-use crate::stdlib::core_types::AugustiumType;
+use crate::error::{Result, VmError, VmErrorKind};
 use std::fmt;
 use serde::{Serialize, Deserialize};
 

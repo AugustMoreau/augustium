@@ -25,6 +25,7 @@ impl Parser {
     }
     
     /// Get all collected errors
+    #[allow(dead_code)]
     pub fn get_errors(&self) -> &Vec<ParseError> {
         &self.errors
     }
@@ -145,7 +146,7 @@ impl Parser {
         let mut fields = Vec::new();
         let mut functions = Vec::new();
         let mut events = Vec::new();
-        let mut modifiers = Vec::new();
+        let modifiers = Vec::new();
         
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             // Skip newlines
@@ -1897,6 +1898,7 @@ impl Parser {
     }
     
     /// Consume a token with graceful error recovery
+    #[allow(dead_code)]
     fn consume_with_recovery(&mut self, token_type: &TokenType, message: &str) -> Option<&Token> {
         if self.check(token_type) {
             Some(self.advance())
@@ -1916,11 +1918,13 @@ impl Parser {
     }
     
     /// Create a checkpoint for backtracking
+    #[allow(dead_code)]
     fn checkpoint(&self) -> usize {
         self.current
     }
     
     /// Restore to a checkpoint
+    #[allow(dead_code)]
     fn restore(&mut self, checkpoint: usize) {
         self.current = checkpoint;
     }
