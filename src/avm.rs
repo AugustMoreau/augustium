@@ -920,7 +920,7 @@ impl AVM {
             }
             
             // Enhanced ML Instructions - Phase 1
-            Instruction::MLCreateTensor(dimensions) => {
+            Instruction::MLCreateTensor(_dimensions) => {
                 self.consume_gas(self.gas_costs.ml_create_tensor)?;
                 self.ml_create_tensor()?;
             }
@@ -954,11 +954,11 @@ impl AVM {
             }
             
             // Advanced Neural Network Operations
-            Instruction::MLConv2D(filters, kernel_size, stride, padding) => {
+            Instruction::MLConv2D(_filters, _kernel_size, _stride, _padding) => {
                 self.consume_gas(self.gas_costs.ml_conv2d)?;
                 self.ml_conv2d()?;
             }
-            Instruction::MLMaxPool2D(pool_size, stride) => {
+            Instruction::MLMaxPool2D(_pool_size, _stride) => {
                 self.consume_gas(self.gas_costs.ml_maxpool2d)?;
                 self.ml_maxpool2d()?;
             }

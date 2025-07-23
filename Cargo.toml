@@ -67,6 +67,55 @@ env_logger = "0.10"
 regex = "1.0"
 fastrand = "2.0"
 
+# Machine Learning Dependencies
+# Core ML libraries
+ndarray = { version = "0.15", features = ["blas"], optional = true }
+linfa = { version = "0.7", optional = true }
+linfa-linear = { version = "0.7", optional = true }
+linfa-trees = { version = "0.7", optional = true }
+linfa-clustering = { version = "0.7", optional = true }
+linfa-nn = { version = "0.7", optional = true }
+# Note: candle dependencies temporarily disabled due to f16 compatibility issues
+# candle-core = { version = "0.3", optional = true }
+# candle-nn = { version = "0.3", optional = true }
+# candle-transformers = { version = "0.3", optional = true }
+tch = { version = "0.13", optional = true }  # PyTorch bindings
+tensorflow = { version = "0.21", optional = true }  # TensorFlow bindings
+
+# GPU/CUDA support
+cudarc = { version = "0.9", optional = true }
+wgpu = { version = "0.19", optional = true }
+
+# Computer Vision
+image = { version = "0.24", optional = true }
+imageproc = { version = "0.23", optional = true }
+opencv = { version = "0.88", optional = true }
+
+# Natural Language Processing
+tokenizers = { version = "0.15", optional = true }
+hf-hub = { version = "0.3", optional = true }
+text-splitter = { version = "0.8", optional = true }
+
+# Reinforcement Learning (placeholder - these would need actual implementations)
+# gymnasium = { version = "0.1", optional = true }  # Not available on crates.io
+# reinforcementlearning = { version = "0.1", optional = true }  # Not available on crates.io
+
+# Optimization and Hyperparameter Tuning (placeholder - these would need actual implementations)
+# optuna = { version = "0.1", optional = true }  # Not available on crates.io
+# hyperopt = { version = "0.1", optional = true }  # Not available on crates.io
+# skopt = { version = "0.1", optional = true }  # Not available on crates.io
+# hyperband = { version = "0.1", optional = true }  # Not available on crates.io
+
+# Distributed Computing (placeholder - these would need actual implementations)
+# mpi = { version = "0.6", optional = true }  # Available but complex setup
+# nccl = { version = "0.1", optional = true }  # Not available on crates.io
+
+# Advanced Math and Statistics
+statrs = { version = "0.16", optional = true }
+rustfft = { version = "6.1", optional = true }
+argmin = { version = "0.8", optional = true }
+argmin-math = { version = "0.3", optional = true }
+
 # Optional features for advanced functionality
 rayon = { version = "1.8", optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
@@ -89,7 +138,23 @@ default = ["std"]
 std = []
 parallel = ["rayon"]
 async = ["tokio"]
-all = ["parallel", "async"]
+
+# ML Features
+ml-basic = ["ndarray", "linfa", "linfa-linear", "linfa-trees", "linfa-clustering", "linfa-nn"]
+ml-gpu = ["cudarc", "wgpu"]
+ml-deep = ["ndarray", "linfa", "linfa-nn"]  # Note: candle dependencies disabled due to compatibility issues
+ml-pytorch = ["tch"]
+ml-tensorflow = ["tensorflow"]
+ml-cv = ["image", "imageproc", "opencv"]
+ml-nlp = ["tokenizers", "hf-hub", "text-splitter"]
+ml-math = ["statrs", "rustfft", "argmin", "argmin-math"]
+# Note: RL, optimization, and distributed features are implemented but dependencies are placeholders
+# ml-rl = []  # Would include RL dependencies when available
+# ml-optimization = []  # Would include optimization dependencies when available  
+# ml-distributed = []  # Would include distributed dependencies when available
+ml-full = ["ml-basic", "ml-gpu", "ml-deep", "ml-pytorch", "ml-tensorflow", "ml-cv", "ml-nlp", "ml-math"]
+
+all = ["parallel", "async", "ml-full"]
 
 # Optimization profiles
 [profile.release]

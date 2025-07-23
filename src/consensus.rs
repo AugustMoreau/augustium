@@ -4,8 +4,8 @@
 //! It includes validator management, block production, and finality mechanisms.
 
 use crate::error::{Result, CompilerError};
-use crate::stdlib::core_types::{U256, U8, AugustiumType};
-use std::collections::{HashMap, BTreeMap, VecDeque};
+use crate::stdlib::core_types::{U256, AugustiumType};
+use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Serialize, Deserialize};
 use serde_bytes;

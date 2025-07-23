@@ -5,7 +5,7 @@
 //! across the entire codebase.
 
 use crate::error::{Result, CompilerError};
-use crate::ast::{Expression, Statement, Type};
+use crate::ast::{Expression, Statement};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 

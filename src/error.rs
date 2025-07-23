@@ -7,6 +7,32 @@ use std::error::Error;
 // Just a shortcut so we don't have to type Result<T, CompilerError> everywhere
 pub type Result<T> = std::result::Result<T, CompilerError>;
 
+// ML-specific error type
+#[derive(Debug, Clone)]
+pub enum AugustiumError {
+    Runtime(String),
+    InvalidInput(String),
+    DeviceError(String),
+    MemoryError(String),
+    ComputationError(String),
+    IoError(String),
+}
+
+impl fmt::Display for AugustiumError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AugustiumError::Runtime(msg) => write!(f, "Runtime error: {}", msg),
+            AugustiumError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
+            AugustiumError::DeviceError(msg) => write!(f, "Device error: {}", msg),
+            AugustiumError::MemoryError(msg) => write!(f, "Memory error: {}", msg),
+            AugustiumError::ComputationError(msg) => write!(f, "Computation error: {}", msg),
+            AugustiumError::IoError(msg) => write!(f, "I/O error: {}", msg),
+        }
+    }
+}
+
+impl Error for AugustiumError {}
+
 // Main error enum - covers all the different phases of compilation
 #[derive(Debug, Clone)]
 pub enum CompilerError {

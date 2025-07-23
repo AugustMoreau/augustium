@@ -4,7 +4,7 @@
 //! including transaction validation, execution, and state management.
 
 use crate::error::{Result, CompilerError};
-use crate::stdlib::core_types::{U256, U8, AugustiumType};
+use crate::stdlib::core_types::{U256, AugustiumType};
 use crate::consensus::{Transaction, Block};
 use std::collections::{HashMap, BTreeMap};
 use serde::{Serialize, Deserialize};
