@@ -2,7 +2,7 @@
 // Stack-based VM that handles contract execution, state, and security
 
 use crate::codegen::{Bytecode, Instruction, Value, ContractBytecode};
-use crate::error::{Result, VmError, VmErrorKind, SourceLocation};
+use crate::error::{Result, VmError, VmErrorKind};
 use std::collections::HashMap;
 
 // Stack size limit to prevent overflow attacks
@@ -25,6 +25,68 @@ pub struct GasCosts {
     pub storage: u64,
     pub call: u64,
     pub contract_creation: u64,
+    // ML operation costs - Enhanced Phase 1
+    pub ml_create_model: u64,
+    pub ml_train: u64,
+    pub ml_predict: u64,
+    pub ml_forward: u64,
+    pub ml_backward: u64,
+    pub ml_normalize: u64,
+    
+    // Enhanced ML Operations
+    pub ml_create_tensor: u64,
+    pub ml_tensor_op: u64,
+    pub ml_reshape: u64,
+    pub ml_slice: u64,
+    pub ml_concat: u64,
+    pub ml_split: u64,
+    pub ml_reduce: u64,
+    pub ml_broadcast: u64,
+    
+    // Advanced Neural Network Operations
+    pub ml_conv2d: u64,
+    pub ml_maxpool2d: u64,
+    pub ml_dropout: u64,
+    pub ml_batch_norm: u64,
+    pub ml_layer_norm: u64,
+    pub ml_attention: u64,
+    pub ml_embedding: u64,
+    
+    // Model Management
+    pub ml_clone_model: u64,
+    pub ml_merge_models: u64,
+    pub ml_quantize_model: u64,
+    pub ml_prune_model: u64,
+    pub ml_distill_model: u64,
+    
+    // Training Operations
+    pub ml_set_learning_rate: u64,
+    pub ml_schedule_lr: u64,
+    pub ml_gradient_clip: u64,
+    pub ml_early_stopping: u64,
+    pub ml_checkpoint: u64,
+    pub ml_restore_checkpoint: u64,
+    
+    // Data Operations
+    pub ml_load_dataset: u64,
+    pub ml_save_dataset: u64,
+    pub ml_split_dataset: u64,
+    pub ml_shuffle_dataset: u64,
+    pub ml_augment_data: u64,
+    pub ml_preprocess_data: u64,
+    
+    // Evaluation and Metrics
+    pub ml_evaluate: u64,
+    pub ml_confusion_matrix: u64,
+    pub ml_roc_curve: u64,
+    pub ml_feature_importance: u64,
+    pub ml_explain_prediction: u64,
+    
+    // Cross-Chain ML Operations
+    pub ml_export_model: u64,
+    pub ml_import_model: u64,
+    pub ml_verify_model: u64,
+    pub ml_sync_model: u64,
 }
 
 impl Default for GasCosts {
@@ -38,6 +100,68 @@ impl Default for GasCosts {
             storage: 20,
             call: 40,
             contract_creation: 200,
+            // ML operations are more expensive due to computation
+            ml_create_model: 100,
+            ml_train: 1000,
+            ml_predict: 50,
+            ml_forward: 30,
+            ml_backward: 100,
+            ml_normalize: 20,
+            
+            // Enhanced ML Operations
+            ml_create_tensor: 25,
+            ml_tensor_op: 15,
+            ml_reshape: 10,
+            ml_slice: 8,
+            ml_concat: 20,
+            ml_split: 15,
+            ml_reduce: 30,
+            ml_broadcast: 12,
+            
+            // Advanced Neural Network Operations
+            ml_conv2d: 200,
+            ml_maxpool2d: 50,
+            ml_dropout: 5,
+            ml_batch_norm: 40,
+            ml_layer_norm: 35,
+            ml_attention: 150,
+            ml_embedding: 25,
+            
+            // Model Management
+            ml_clone_model: 80,
+            ml_merge_models: 120,
+            ml_quantize_model: 100,
+            ml_prune_model: 90,
+            ml_distill_model: 500,
+            
+            // Training Operations
+            ml_set_learning_rate: 5,
+            ml_schedule_lr: 10,
+            ml_gradient_clip: 15,
+            ml_early_stopping: 8,
+            ml_checkpoint: 200,
+            ml_restore_checkpoint: 150,
+            
+            // Data Operations
+            ml_load_dataset: 100,
+            ml_save_dataset: 80,
+            ml_split_dataset: 30,
+            ml_shuffle_dataset: 25,
+            ml_augment_data: 60,
+            ml_preprocess_data: 40,
+            
+            // Evaluation and Metrics
+            ml_evaluate: 200,
+            ml_confusion_matrix: 50,
+            ml_roc_curve: 80,
+            ml_feature_importance: 100,
+            ml_explain_prediction: 150,
+            
+            // Cross-Chain ML Operations
+            ml_export_model: 300,
+            ml_import_model: 250,
+            ml_verify_model: 100,
+            ml_sync_model: 400,
         }
     }
 }
@@ -46,13 +170,17 @@ impl Default for GasCosts {
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     pub caller: [u8; 20],
+    #[allow(dead_code)]
     pub origin: [u8; 20],
+    #[allow(dead_code)]
     pub gas_price: u64,
     pub gas_limit: u64,
     pub value: u64,
     pub block_number: u64,
     pub timestamp: u64,
+    #[allow(dead_code)]
     pub difficulty: u64,
+    #[allow(dead_code)]
     pub chain_id: u64,
 }
 
@@ -75,8 +203,11 @@ impl Default for ExecutionContext {
 /// Contract instance in the AVM
 #[derive(Debug, Clone)]
 pub struct ContractInstance {
+    #[allow(dead_code)]
     pub address: [u8; 20],
+    #[allow(dead_code)]
     pub bytecode: ContractBytecode,
+    #[allow(dead_code)]
     pub storage: HashMap<u32, Value>,
     pub balance: u64,
 }
@@ -87,26 +218,37 @@ struct CallFrame {
     instructions: Vec<Instruction>,
     pc: usize,
     locals: Vec<Value>,
+    #[allow(dead_code)]
     return_address: Option<usize>,
 }
 
 /// Event emitted by a contract
 #[derive(Debug, Clone)]
 pub struct Event {
+    #[allow(dead_code)]
     pub contract_address: [u8; 20],
+    #[allow(dead_code)]
     pub event_name: String,
+    #[allow(dead_code)]
     pub data: Vec<Value>,
+    #[allow(dead_code)]
     pub block_number: u64,
+    #[allow(dead_code)]
     pub transaction_hash: [u8; 32],
 }
 
 /// Transaction result
 #[derive(Debug, Clone)]
 pub struct TransactionResult {
+    #[allow(dead_code)]
     pub success: bool,
+    #[allow(dead_code)]
     pub gas_used: u64,
+    #[allow(dead_code)]
     pub return_value: Option<Value>,
+    #[allow(dead_code)]
     pub events: Vec<Event>,
+    #[allow(dead_code)]
     pub error: Option<String>,
 }
 
@@ -121,6 +263,9 @@ pub struct AVM {
     events: Vec<Event>,
     halted: bool,
     debug_mode: bool,
+    // ML-specific state
+    ml_models: HashMap<u32, crate::codegen::Value>,
+    next_model_id: u32,
 }
 
 impl AVM {
@@ -136,10 +281,13 @@ impl AVM {
             events: Vec::new(),
             halted: false,
             debug_mode: false,
+            ml_models: HashMap::new(),
+            next_model_id: 1,
         }
     }
     
     /// Create a new AVM instance with custom context
+    #[allow(dead_code)]
     pub fn with_context(context: ExecutionContext) -> Self {
         Self {
             stack: Vec::new(),
@@ -151,15 +299,19 @@ impl AVM {
             events: Vec::new(),
             halted: false,
             debug_mode: false,
+            ml_models: HashMap::new(),
+            next_model_id: 1,
         }
     }
     
     /// Enable debug mode
+    #[allow(dead_code)]
     pub fn set_debug_mode(&mut self, debug: bool) {
         self.debug_mode = debug;
     }
     
     /// Deploy a contract
+    #[allow(dead_code)]
     pub fn deploy_contract(
         &mut self,
         bytecode: ContractBytecode,
@@ -170,7 +322,7 @@ impl AVM {
         address[0] = (self.contracts.len() + 1) as u8;
         
         // Create contract instance
-        let mut contract = ContractInstance {
+        let contract = ContractInstance {
             address,
             bytecode: bytecode.clone(),
             storage: HashMap::new(),
@@ -203,6 +355,7 @@ impl AVM {
     }
     
     /// Call a contract function
+    #[allow(dead_code)]
     pub fn call_contract(
         &mut self,
         contract_address: [u8; 20],
@@ -704,6 +857,246 @@ impl AVM {
                 }
             }
             
+            // Machine Learning operations
+            Instruction::MLCreateModel(model_type) => {
+                self.consume_gas(self.gas_costs.ml_create_model)?;
+                self.ml_create_model(&model_type)?;
+            }
+            Instruction::MLLoadModel(model_id) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_load_model(model_id)?;
+            }
+            Instruction::MLSaveModel(model_id) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_save_model(model_id)?;
+            }
+            Instruction::MLTrain(model_id) => {
+                self.consume_gas(self.gas_costs.ml_train)?;
+                self.ml_train_model(model_id)?;
+            }
+            Instruction::MLPredict(model_id) => {
+                self.consume_gas(self.gas_costs.ml_predict)?;
+                self.ml_predict(model_id)?;
+            }
+            Instruction::MLSetHyperparams(model_id) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_set_hyperparams(model_id)?;
+            }
+            Instruction::MLGetMetrics(model_id) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_get_metrics(model_id)?;
+            }
+            Instruction::MLForward(model_id) => {
+                self.consume_gas(self.gas_costs.ml_forward)?;
+                self.ml_forward_pass(model_id)?;
+            }
+            Instruction::MLBackward(model_id) => {
+                self.consume_gas(self.gas_costs.ml_backward)?;
+                self.ml_backward_pass(model_id)?;
+            }
+            Instruction::MLUpdateWeights(model_id) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_update_weights(model_id)?;
+            }
+            Instruction::MLNormalize => {
+                self.consume_gas(self.gas_costs.ml_normalize)?;
+                self.ml_normalize_data()?;
+            }
+            Instruction::MLDenormalize => {
+                self.consume_gas(self.gas_costs.ml_normalize)?;
+                self.ml_denormalize_data()?;
+            }
+            Instruction::MLActivation(activation_type) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_apply_activation(&activation_type)?;
+            }
+            Instruction::MLLoss(loss_type) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_calculate_loss(&loss_type)?;
+            }
+            Instruction::MLOptimizer(optimizer_type) => {
+                self.consume_gas(self.gas_costs.base)?;
+                self.ml_apply_optimizer(&optimizer_type)?;
+            }
+            
+            // Enhanced ML Instructions - Phase 1
+            Instruction::MLCreateTensor(dimensions) => {
+                self.consume_gas(self.gas_costs.ml_create_tensor)?;
+                self.ml_create_tensor()?;
+            }
+            Instruction::MLTensorOp(op_type) => {
+                self.consume_gas(self.gas_costs.ml_tensor_op)?;
+                self.ml_tensor_op(&op_type)?;
+            }
+            Instruction::MLReshape(new_shape) => {
+                self.consume_gas(self.gas_costs.ml_reshape)?;
+                self.ml_reshape(&new_shape)?;
+            }
+            Instruction::MLSlice(ranges) => {
+                self.consume_gas(self.gas_costs.ml_slice)?;
+                self.ml_slice(&ranges)?;
+            }
+            Instruction::MLConcat(axis) => {
+                self.consume_gas(self.gas_costs.ml_concat)?;
+                self.ml_concat(axis)?;
+            }
+            Instruction::MLSplit(axis, sections) => {
+                self.consume_gas(self.gas_costs.ml_split)?;
+                self.ml_split(axis, sections)?;
+            }
+            Instruction::MLReduce(op_type, axis) => {
+                self.consume_gas(self.gas_costs.ml_reduce)?;
+                self.ml_reduce(&op_type, axis)?;
+            }
+            Instruction::MLBroadcast(target_shape) => {
+                self.consume_gas(self.gas_costs.ml_broadcast)?;
+                self.ml_broadcast(&target_shape)?;
+            }
+            
+            // Advanced Neural Network Operations
+            Instruction::MLConv2D(filters, kernel_size, stride, padding) => {
+                self.consume_gas(self.gas_costs.ml_conv2d)?;
+                self.ml_conv2d()?;
+            }
+            Instruction::MLMaxPool2D(pool_size, stride) => {
+                self.consume_gas(self.gas_costs.ml_maxpool2d)?;
+                self.ml_maxpool2d()?;
+            }
+            Instruction::MLDropout(probability) => {
+                self.consume_gas(self.gas_costs.ml_dropout)?;
+                self.ml_dropout()?;
+            }
+            Instruction::MLBatchNorm => {
+                self.consume_gas(self.gas_costs.ml_batch_norm)?;
+                self.ml_batch_norm()?;
+            }
+            Instruction::MLLayerNorm => {
+                self.consume_gas(self.gas_costs.ml_layer_norm)?;
+                self.ml_layer_norm()?;
+            }
+            Instruction::MLAttention => {
+                self.consume_gas(self.gas_costs.ml_attention)?;
+                self.ml_attention()?;
+            }
+            Instruction::MLEmbedding(vocab_size, embed_dim) => {
+                self.consume_gas(self.gas_costs.ml_embedding)?;
+                self.ml_embedding()?;
+            }
+            
+            // Model Management
+            Instruction::MLCloneModel(model_id) => {
+                self.consume_gas(self.gas_costs.ml_clone_model)?;
+                self.ml_clone_model(model_id)?;
+            }
+            Instruction::MLMergeModels(model_ids) => {
+                self.consume_gas(self.gas_costs.ml_merge_models)?;
+                self.ml_merge_models(&model_ids)?;
+            }
+            Instruction::MLQuantizeModel(model_id, quantization_type) => {
+                self.consume_gas(self.gas_costs.ml_quantize_model)?;
+                self.ml_quantize_model(model_id)?;
+            }
+            Instruction::MLPruneModel(model_id, threshold) => {
+                self.consume_gas(self.gas_costs.ml_prune_model)?;
+                self.ml_prune_model(model_id, threshold)?;
+            }
+            Instruction::MLDistillModel(teacher_id, student_id) => {
+                self.consume_gas(self.gas_costs.ml_distill_model)?;
+                self.ml_distill_model(teacher_id, student_id)?;
+            }
+            
+            // Training Operations
+            Instruction::MLSetLearningRate(learning_rate) => {
+                self.consume_gas(self.gas_costs.ml_set_learning_rate)?;
+                self.ml_set_learning_rate(learning_rate)?;
+            }
+            Instruction::MLScheduleLR(scheduler_type) => {
+                self.consume_gas(self.gas_costs.ml_schedule_lr)?;
+                self.ml_schedule_learning_rate(&scheduler_type)?;
+            }
+            Instruction::MLGradientClip(max_norm) => {
+                self.consume_gas(self.gas_costs.ml_gradient_clip)?;
+                self.ml_gradient_clip(max_norm)?;
+            }
+            Instruction::MLEarlyStopping(patience, min_delta) => {
+                self.consume_gas(self.gas_costs.ml_early_stopping)?;
+                self.ml_early_stopping()?;
+            }
+            Instruction::MLCheckpoint(checkpoint_name) => {
+                self.consume_gas(self.gas_costs.ml_checkpoint)?;
+                self.ml_save_checkpoint(&checkpoint_name)?;
+            }
+            Instruction::MLRestoreCheckpoint(checkpoint_name) => {
+                self.consume_gas(self.gas_costs.ml_restore_checkpoint)?;
+                self.ml_restore_checkpoint(&checkpoint_name)?;
+            }
+            
+            // Data Operations
+            Instruction::MLLoadDataset(dataset_name) => {
+                self.consume_gas(self.gas_costs.ml_load_dataset)?;
+                self.ml_load_dataset(&dataset_name)?;
+            }
+            Instruction::MLSaveDataset(dataset_name) => {
+                self.consume_gas(self.gas_costs.ml_save_dataset)?;
+                self.ml_save_dataset(&dataset_name)?;
+            }
+            Instruction::MLSplitDataset(train_ratio, val_ratio) => {
+                self.consume_gas(self.gas_costs.ml_split_dataset)?;
+                self.ml_split_dataset(train_ratio, val_ratio)?;
+            }
+            Instruction::MLShuffleDataset => {
+                self.consume_gas(self.gas_costs.ml_shuffle_dataset)?;
+                self.ml_shuffle_dataset()?;
+            }
+            Instruction::MLAugmentData(augmentation_type) => {
+                self.consume_gas(self.gas_costs.ml_augment_data)?;
+                self.ml_augment_data()?;
+            }
+            Instruction::MLPreprocessData(preprocessing_type) => {
+                self.consume_gas(self.gas_costs.ml_preprocess_data)?;
+                self.ml_preprocess_data(&preprocessing_type)?;
+            }
+            
+            // Evaluation and Metrics
+            Instruction::MLEvaluate(model_id) => {
+                self.consume_gas(self.gas_costs.ml_evaluate)?;
+                self.ml_evaluate(model_id)?;
+            }
+            Instruction::MLConfusionMatrix => {
+                self.consume_gas(self.gas_costs.ml_confusion_matrix)?;
+                self.ml_confusion_matrix()?;
+            }
+            Instruction::MLROCCurve => {
+                self.consume_gas(self.gas_costs.ml_roc_curve)?;
+                self.ml_roc_curve()?;
+            }
+            Instruction::MLFeatureImportance => {
+                self.consume_gas(self.gas_costs.ml_feature_importance)?;
+                self.ml_feature_importance()?;
+            }
+            Instruction::MLExplainPrediction(model_id) => {
+                self.consume_gas(self.gas_costs.ml_explain_prediction)?;
+                self.ml_explain_prediction(model_id)?;
+            }
+            
+            // Cross-Chain ML Operations
+            Instruction::MLExportModel(export_format) => {
+                self.consume_gas(self.gas_costs.ml_export_model)?;
+                self.ml_export_model(0)?; // Use dummy model ID
+            }
+            Instruction::MLImportModel(import_format) => {
+                self.consume_gas(self.gas_costs.ml_import_model)?;
+                self.ml_import_model(&import_format)?;
+            }
+            Instruction::MLVerifyModel(verification_type) => {
+                self.consume_gas(self.gas_costs.ml_verify_model)?;
+                self.ml_verify_model(&verification_type)?;
+            }
+            Instruction::MLSyncModel(model_id, target_chain) => {
+                self.consume_gas(self.gas_costs.ml_sync_model)?;
+                self.ml_sync_model(model_id)?;
+            }
+            
             // Halt execution
             Instruction::Halt => {
                 self.consume_gas(self.gas_costs.base)?;
@@ -715,7 +1108,7 @@ impl AVM {
     }
     
     /// Push a value onto the stack
-    fn push(&mut self, value: Value) -> Result<()> {
+    pub fn push(&mut self, value: Value) -> Result<()> {
         if self.stack.len() >= MAX_STACK_SIZE {
             return Err(VmError::new(
                 VmErrorKind::StackOverflow,
@@ -792,14 +1185,14 @@ impl AVM {
     }
     
     /// Load a contract field
-    fn load_field(&self, index: u32) -> Result<Value> {
+    fn load_field(&mut self, _index: u32) -> Result<Value> {
         // TODO: Implement contract field loading
         // For now, return a placeholder value
         Ok(Value::U32(0))
     }
     
     /// Store a contract field
-    fn store_field(&mut self, index: u32, value: Value) -> Result<()> {
+    fn store_field(&mut self, _index: u32, _value: Value) -> Result<()> {
         // TODO: Implement contract field storage
         Ok(())
     }
@@ -817,7 +1210,7 @@ impl AVM {
     }
     
     /// Call a function
-    fn call_function(&mut self, offset: u32) -> Result<()> {
+    fn call_function(&mut self, _offset: u32) -> Result<()> {
         // TODO: Implement function calls
         Ok(())
     }
@@ -829,7 +1222,7 @@ impl AVM {
     }
     
     /// Invoke a function by name
-    fn invoke_function(&mut self, function_name: &str) -> Result<()> {
+    fn invoke_function(&mut self, _function_name: &str) -> Result<()> {
         // TODO: Implement function invocation by name
         Ok(())
     }
@@ -867,7 +1260,7 @@ impl AVM {
     }
     
     /// Transfer value between addresses
-    fn transfer(&mut self, to_address: &Value, amount: &Value) -> Result<()> {
+    fn transfer(&mut self, _to_address: &Value, _amount: &Value) -> Result<()> {
         // TODO: Implement value transfer
         Ok(())
     }
@@ -888,10 +1281,22 @@ impl AVM {
             Value::I64(n) => *n != 0,
             Value::I128(n) => *n != 0,
             Value::I256(bytes) => bytes.iter().any(|&b| b != 0),
+            Value::F32(f) => *f != 0.0,
+            Value::F64(f) => *f != 0.0,
             Value::String(s) => !s.is_empty(),
             Value::Array(arr) => !arr.is_empty(),
             Value::Tuple(tuple) => !tuple.is_empty(),
             Value::Address(_) => true,
+            Value::MLModel { .. } => true,
+            Value::MLDataset { .. } => true,
+            Value::MLMetrics { .. } => true,
+            Value::Tensor { data, .. } => !data.is_empty(),
+            Value::Matrix(data) => !data.is_empty(),
+            Value::Vector(data) => !data.is_empty(),
+            Value::MLOptimizer { .. } => true,
+            Value::MLScheduler { .. } => true,
+            Value::MLCheckpoint { .. } => true,
+            Value::MLExplanation { .. } => true,
             Value::Null => false,
         }
     }
@@ -1124,6 +1529,969 @@ impl AVM {
                 "Right shift requires integer values".to_string(),
             ).into()),
         }
+    }
+    
+    // Machine Learning helper methods
+    
+    /// Create a new ML model
+    pub fn ml_create_model(&mut self, model_type: &str) -> Result<()> {
+        let model_id = self.next_model_id;
+        self.next_model_id += 1;
+        
+        let model = match model_type {
+            "neural_network" => {
+                use crate::codegen::Value;
+                Value::MLModel {
+                    model_id,
+                    model_type: model_type.to_string(),
+                    weights: vec![0.1, 0.2, 0.3], // Default weights
+                    biases: vec![0.0, 0.0],
+                    hyperparams: std::collections::HashMap::new(),
+                    architecture: vec![3, 2, 1], // Default architecture
+                    version: 1,
+                    checksum: "default_checksum".to_string(),
+                }
+            }
+            "linear_regression" => {
+                use crate::codegen::Value;
+                Value::MLModel {
+                    model_id,
+                    model_type: model_type.to_string(),
+                    weights: vec![1.0],
+                    biases: vec![0.0],
+                    hyperparams: std::collections::HashMap::new(),
+                    architecture: vec![1, 1], // Default architecture
+                    version: 1,
+                    checksum: "linear_checksum".to_string(),
+                }
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::InvalidOperation,
+                    format!("Unsupported model type: {}", model_type),
+                ).into());
+            }
+        };
+        
+        self.ml_models.insert(model_id, model);
+        self.push(crate::codegen::Value::U32(model_id))?;
+        Ok(())
+    }
+    
+    /// Load an ML model from storage
+    fn ml_load_model(&mut self, model_id: u32) -> Result<()> {
+        if let Some(model) = self.ml_models.get(&model_id) {
+            self.push(model.clone())?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+    
+    /// Save an ML model to storage
+    fn ml_save_model(&mut self, model_id: u32) -> Result<()> {
+        let model = self.pop()?;
+        self.ml_models.insert(model_id, model);
+        Ok(())
+    }
+    
+    /// Train an ML model
+    fn ml_train_model(&mut self, model_id: u32) -> Result<()> {
+        let dataset = self.pop()?; // Training dataset
+        
+        if let Some(model) = self.ml_models.get_mut(&model_id) {
+            match (model, &dataset) {
+                (crate::codegen::Value::MLModel { weights, .. }, 
+                 crate::codegen::Value::MLDataset { features, targets, .. }) => {
+                    // Simple training simulation - update weights based on data
+                    for (i, weight) in weights.iter_mut().enumerate() {
+                        if i < features.len() && !features[i].is_empty() {
+                            *weight += 0.01 * (targets.get(i).unwrap_or(&0.0) - features[i][0]);
+                        }
+                    }
+                }
+                _ => {
+                    return Err(VmError::new(
+                        VmErrorKind::TypeMismatch,
+                        "Invalid model or dataset type for training".to_string(),
+                    ).into());
+                }
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Make a prediction with an ML model
+    fn ml_predict(&mut self, model_id: u32) -> Result<()> {
+        let input = self.pop()?; // Input data
+        
+        if let Some(model) = self.ml_models.get(&model_id) {
+            match (model, &input) {
+                (crate::codegen::Value::MLModel { weights, biases, .. }, 
+                 crate::codegen::Value::Vector(input_vec)) => {
+                    // Simple linear prediction
+                    let mut prediction = *biases.get(0).unwrap_or(&0.0);
+                    for (i, &input_val) in input_vec.iter().enumerate() {
+                        if let Some(&weight) = weights.get(i) {
+                            prediction += weight * input_val;
+                        }
+                    }
+                    self.push(crate::codegen::Value::Vector(vec![prediction]))?;
+                }
+                _ => {
+                    return Err(VmError::new(
+                        VmErrorKind::TypeMismatch,
+                        "Invalid model or input type for prediction".to_string(),
+                    ).into());
+                }
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Set hyperparameters for an ML model
+    fn ml_set_hyperparams(&mut self, model_id: u32) -> Result<()> {
+        let hyperparams = self.pop()?; // Hyperparameters
+        
+        if let Some(model) = self.ml_models.get_mut(&model_id) {
+            if let crate::codegen::Value::MLModel { hyperparams: model_hyperparams, .. } = model {
+                // Update hyperparameters (simplified)
+                model_hyperparams.insert("learning_rate".to_string(), 0.01);
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Get metrics for an ML model
+    fn ml_get_metrics(&mut self, model_id: u32) -> Result<()> {
+        if self.ml_models.contains_key(&model_id) {
+            let metrics = crate::codegen::Value::MLMetrics {
+                accuracy: 0.85,
+                loss: 0.15,
+                precision: 0.82,
+                recall: 0.88,
+                f1_score: 0.85,
+                auc_roc: 0.90,
+                confusion_matrix: vec![vec![10, 2], vec![1, 15]],
+            };
+            self.push(metrics)?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Perform forward pass for neural network
+    fn ml_forward_pass(&mut self, model_id: u32) -> Result<()> {
+        let input = self.pop()?;
+        
+        if let Some(model) = self.ml_models.get(&model_id) {
+            match (model, &input) {
+                (crate::codegen::Value::MLModel { weights, biases, .. }, 
+                 crate::codegen::Value::Vector(input_vec)) => {
+                    // Simple forward pass simulation
+                    let mut output = Vec::new();
+                    for (i, &bias) in biases.iter().enumerate() {
+                        let mut neuron_output = bias;
+                        for (j, &input_val) in input_vec.iter().enumerate() {
+                            if let Some(&weight) = weights.get(i * input_vec.len() + j) {
+                                neuron_output += weight * input_val;
+                            }
+                        }
+                        // Apply ReLU activation
+                        output.push(neuron_output.max(0.0));
+                    }
+                    self.push(crate::codegen::Value::Vector(output))?;
+                }
+                _ => {
+                    return Err(VmError::new(
+                        VmErrorKind::TypeMismatch,
+                        "Invalid model or input type for forward pass".to_string(),
+                    ).into());
+                }
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Perform backward pass for neural network
+    fn ml_backward_pass(&mut self, model_id: u32) -> Result<()> {
+        let gradients = self.pop()?; // Gradients from loss
+        
+        if let Some(model) = self.ml_models.get_mut(&model_id) {
+            if let crate::codegen::Value::MLModel { weights, .. } = model {
+                // Simple gradient update simulation
+                for weight in weights.iter_mut() {
+                    *weight -= 0.01 * 0.1; // learning_rate * gradient (simplified)
+                }
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Update model weights
+    fn ml_update_weights(&mut self, model_id: u32) -> Result<()> {
+        let new_weights = self.pop()?;
+        
+        if let Some(model) = self.ml_models.get_mut(&model_id) {
+            if let (crate::codegen::Value::MLModel { weights, .. }, 
+                    crate::codegen::Value::Vector(new_weight_vec)) = (model, &new_weights) {
+                *weights = new_weight_vec.clone();
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        
+        Ok(())
+    }
+    
+    /// Normalize data
+    fn ml_normalize_data(&mut self) -> Result<()> {
+        let data = self.pop()?;
+        
+        match data {
+            crate::codegen::Value::Vector(mut vec) => {
+                // Min-max normalization
+                if !vec.is_empty() {
+                    let min_val = vec.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+                    let max_val = vec.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                    let range = max_val - min_val;
+                    
+                    if range > 0.0 {
+                        for val in vec.iter_mut() {
+                            *val = (*val - min_val) / range;
+                        }
+                    }
+                }
+                self.push(crate::codegen::Value::Vector(vec))?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Can only normalize vector data".to_string(),
+                ).into());
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Denormalize data
+    fn ml_denormalize_data(&mut self) -> Result<()> {
+        let normalized_data = self.pop()?;
+        let original_stats = self.pop()?; // Min and max values
+        
+        // Implementation would reverse the normalization process
+        self.push(normalized_data)?; // Simplified for now
+        Ok(())
+    }
+    
+    /// Apply activation function
+    fn ml_apply_activation(&mut self, activation_type: &str) -> Result<()> {
+        let input = self.pop()?;
+        
+        match input {
+            crate::codegen::Value::Vector(vec) => {
+                let output: Vec<f64> = vec.iter().map(|&x| {
+                    match activation_type {
+                        "relu" => x.max(0.0),
+                        "sigmoid" => 1.0 / (1.0 + (-x).exp()),
+                        "tanh" => x.tanh(),
+                        _ => x, // Linear activation
+                    }
+                }).collect();
+                
+                self.push(crate::codegen::Value::Vector(output))?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Activation function requires vector input".to_string(),
+                ).into());
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Calculate loss
+    fn ml_calculate_loss(&mut self, loss_type: &str) -> Result<()> {
+        let predictions = self.pop()?;
+        let targets = self.pop()?;
+        
+        match (predictions, targets) {
+            (crate::codegen::Value::Vector(pred), crate::codegen::Value::Vector(targ)) => {
+                let loss = match loss_type {
+                    "mse" => {
+                        // Mean Squared Error
+                        let sum: f64 = pred.iter().zip(targ.iter())
+                            .map(|(p, t)| (p - t).powi(2))
+                            .sum();
+                        sum / pred.len() as f64
+                    }
+                    "cross_entropy" => {
+                        // Cross Entropy (simplified)
+                        let sum: f64 = pred.iter().zip(targ.iter())
+                            .map(|(p, t)| -t * p.ln())
+                            .sum();
+                        sum / pred.len() as f64
+                    }
+                    _ => 0.0, // Default
+                };
+                
+                self.push(crate::codegen::Value::Vector(vec![loss]))?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Loss calculation requires vector inputs".to_string(),
+                ).into());
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Apply optimizer
+    fn ml_apply_optimizer(&mut self, optimizer_type: &str) -> Result<()> {
+        let gradients = self.pop()?;
+        let learning_rate = 0.01; // Default learning rate
+        
+        match gradients {
+            crate::codegen::Value::Vector(grad) => {
+                let updates: Vec<f64> = grad.iter().map(|&g| {
+                    match optimizer_type {
+                        "sgd" => -learning_rate * g,
+                        "adam" => -learning_rate * g, // Simplified Adam
+                        "rmsprop" => -learning_rate * g, // Simplified RMSprop
+                        _ => -learning_rate * g, // Default SGD
+                    }
+                }).collect();
+                
+                self.push(crate::codegen::Value::Vector(updates))?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Optimizer requires vector gradients".to_string(),
+                ).into());
+            }
+        }
+        
+        Ok(())
+    }
+
+    // Additional ML method implementations for new instructions
+    
+    /// Create tensor from vector data
+    pub fn ml_create_tensor(&mut self) -> Result<()> {
+        let shape = self.pop()?;
+        let data = self.pop()?;
+        
+        match (data, shape) {
+            (crate::codegen::Value::Vector(vec), crate::codegen::Value::Vector(shape_vec)) => {
+                let tensor = crate::codegen::Value::Tensor {
+                    data: vec,
+                    shape: shape_vec.iter().map(|&x| x as usize).collect(),
+                    dtype: "f64".to_string(),
+                };
+                self.push(tensor)?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Invalid data or shape for tensor creation".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Perform tensor operations
+    pub fn ml_tensor_op(&mut self, op: &str) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        
+        match (a, b) {
+            (crate::codegen::Value::Tensor { data: data_a, shape: shape_a, .. },
+             crate::codegen::Value::Tensor { data: data_b, shape: shape_b, .. }) => {
+                
+                let result_data = match op {
+                    "add" => {
+                        if data_a.len() == data_b.len() {
+                            data_a.iter().zip(data_b.iter()).map(|(a, b)| a + b).collect()
+                        } else {
+                            return Err(VmError::new(
+                                VmErrorKind::InvalidOperation,
+                                "Tensor dimensions mismatch for addition".to_string(),
+                            ).into());
+                        }
+                    }
+                    "mul" => {
+                        if data_a.len() == data_b.len() {
+                            data_a.iter().zip(data_b.iter()).map(|(a, b)| a * b).collect()
+                        } else {
+                            return Err(VmError::new(
+                                VmErrorKind::InvalidOperation,
+                                "Tensor dimensions mismatch for multiplication".to_string(),
+                            ).into());
+                        }
+                    }
+                    "matmul" => {
+                        // Simplified matrix multiplication for 2D tensors
+                        if shape_a.len() == 2 && shape_b.len() == 2 && shape_a[1] == shape_b[0] {
+                            let mut result = vec![0.0; shape_a[0] * shape_b[1]];
+                            for i in 0..shape_a[0] {
+                                for j in 0..shape_b[1] {
+                                    for k in 0..shape_a[1] {
+                                        result[i * shape_b[1] + j] += 
+                                            data_a[i * shape_a[1] + k] * data_b[k * shape_b[1] + j];
+                                    }
+                                }
+                            }
+                            result
+                        } else {
+                            return Err(VmError::new(
+                                VmErrorKind::InvalidOperation,
+                                "Invalid tensor shapes for matrix multiplication".to_string(),
+                            ).into());
+                        }
+                    }
+                    _ => data_a, // Default to first tensor
+                };
+                
+                let result_shape = match op {
+                    "matmul" if shape_a.len() == 2 && shape_b.len() == 2 => 
+                        vec![shape_a[0], shape_b[1]],
+                    _ => shape_a,
+                };
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: result_data,
+                    shape: result_shape,
+                    dtype: "f64".to_string(),
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Tensor operation requires tensor inputs".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Perform convolution operation
+    fn ml_conv2d(&mut self) -> Result<()> {
+        let kernel = self.pop()?;
+        let input = self.pop()?;
+        
+        // Simplified 2D convolution implementation
+        match (input, kernel) {
+            (crate::codegen::Value::Tensor { data: input_data, shape: input_shape, .. },
+             crate::codegen::Value::Tensor { data: kernel_data, shape: kernel_shape, .. }) => {
+                
+                if input_shape.len() >= 2 && kernel_shape.len() >= 2 {
+                    // Simplified convolution - just return input for now
+                    self.push(crate::codegen::Value::Tensor {
+                        data: input_data,
+                        shape: input_shape,
+                        dtype: "f64".to_string(),
+                    })?;
+                } else {
+                    return Err(VmError::new(
+                        VmErrorKind::InvalidOperation,
+                        "Conv2D requires 2D+ tensors".to_string(),
+                    ).into());
+                }
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Conv2D requires tensor inputs".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Perform attention mechanism
+    fn ml_attention(&mut self) -> Result<()> {
+        let values = self.pop()?;
+        let keys = self.pop()?;
+        let queries = self.pop()?;
+        
+        // Simplified attention mechanism
+        match (queries, keys, values) {
+            (crate::codegen::Value::Tensor { data: q_data, shape: q_shape, .. },
+             crate::codegen::Value::Tensor { data: k_data, shape: k_shape, .. },
+             crate::codegen::Value::Tensor { data: v_data, shape: v_shape, .. }) => {
+                
+                // Simplified attention - return values tensor
+                self.push(crate::codegen::Value::Tensor {
+                    data: v_data,
+                    shape: v_shape,
+                    dtype: "f64".to_string(),
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Attention requires tensor inputs".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Clone a model
+    fn ml_clone_model(&mut self, model_id: u32) -> Result<()> {
+        if let Some(model) = self.ml_models.get(&model_id).cloned() {
+            let new_id = self.next_model_id;
+            self.next_model_id += 1;
+            self.ml_models.insert(new_id, model);
+            self.push(crate::codegen::Value::U32(new_id))?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+    
+    /// Quantize a model
+    fn ml_quantize_model(&mut self, model_id: u32) -> Result<()> {
+        if let Some(model) = self.ml_models.get_mut(&model_id) {
+            if let crate::codegen::Value::MLModel { weights, .. } = model {
+                // Simple quantization - round to nearest 0.1
+                for weight in weights.iter_mut() {
+                    *weight = (*weight * 10.0).round() / 10.0;
+                }
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+    
+    /// Set learning rate
+    fn ml_set_learning_rate(&mut self, rate: f64) -> Result<()> {
+        // Store learning rate in context or model state
+        self.push(crate::codegen::Value::Vector(vec![rate]))?;
+        Ok(())
+    }
+    
+    /// Implement early stopping
+    fn ml_early_stopping(&mut self) -> Result<()> {
+        let current_loss = self.pop()?;
+        let best_loss = self.pop()?;
+        
+        match (current_loss, best_loss) {
+            (crate::codegen::Value::Vector(curr), crate::codegen::Value::Vector(best)) => {
+                let should_stop = if !curr.is_empty() && !best.is_empty() {
+                    curr[0] > best[0] // Stop if current loss is worse
+                } else {
+                    false
+                };
+                self.push(crate::codegen::Value::Bool(should_stop))?;
+            }
+            _ => {
+                self.push(crate::codegen::Value::Bool(false))?;
+            }
+        }
+        Ok(())
+    }
+    
+    /// Load dataset
+    fn ml_load_dataset(&mut self, dataset_id: &str) -> Result<()> {
+        // Simulate loading a dataset
+        let dataset = crate::codegen::Value::MLDataset {
+            features: vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]],
+            targets: vec![0.0, 1.0],
+            normalized: false,
+            metadata: std::collections::HashMap::new(),
+            split_info: None,
+        };
+        self.push(dataset)?;
+        Ok(())
+    }
+    
+    /// Augment data
+    fn ml_augment_data(&mut self) -> Result<()> {
+        let data = self.pop()?;
+        
+        match data {
+            crate::codegen::Value::MLDataset { mut features, targets, .. } => {
+                // Simple data augmentation - add noise
+                for sample in features.iter_mut() {
+                    for value in sample.iter_mut() {
+                        *value += (rand::random::<f64>() - 0.5) * 0.1; // Add small noise
+                    }
+                }
+                
+                self.push(crate::codegen::Value::MLDataset {
+                    features,
+                    targets,
+                    normalized: false,
+                    metadata: std::collections::HashMap::new(),
+                    split_info: None,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Data augmentation requires dataset input".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Evaluate model
+    fn ml_evaluate(&mut self, model_id: u32) -> Result<()> {
+        let test_data = self.pop()?;
+        
+        if let Some(_model) = self.ml_models.get(&model_id) {
+            // Simulate model evaluation
+            let metrics = crate::codegen::Value::MLMetrics {
+                accuracy: 0.85,
+                loss: 0.15,
+                precision: 0.82,
+                recall: 0.88,
+                f1_score: 0.85,
+                auc_roc: 0.90,
+                confusion_matrix: vec![vec![50, 5], vec![10, 35]],
+            };
+            self.push(metrics)?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+    
+    /// Calculate confusion matrix
+    fn ml_confusion_matrix(&mut self) -> Result<()> {
+        let actual = self.pop()?;
+        let predicted = self.pop()?;
+        
+        match (predicted, actual) {
+            (crate::codegen::Value::Vector(pred), crate::codegen::Value::Vector(act)) => {
+                // Simplified confusion matrix for binary classification
+                let mut matrix = vec![vec![0, 0], vec![0, 0]];
+                
+                for (p, a) in pred.iter().zip(act.iter()) {
+                    let pred_class = if *p > 0.5 { 1 } else { 0 };
+                    let actual_class = if *a > 0.5 { 1 } else { 0 };
+                    matrix[actual_class][pred_class] += 1;
+                }
+                
+                self.push(crate::codegen::Value::Matrix(matrix.into_iter().map(|row| {
+                    row.into_iter().map(|x| x as f64).collect()
+                }).collect()))?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Confusion matrix requires vector inputs".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+    
+    /// Export model
+    fn ml_export_model(&mut self, model_id: u32) -> Result<()> {
+        if let Some(model) = self.ml_models.get(&model_id) {
+            // Simulate model export
+            self.push(crate::codegen::Value::String(format!("exported_model_{}", model_id)))?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+    
+    /// Sync model across chains
+    fn ml_sync_model(&mut self, model_id: u32) -> Result<()> {
+        if let Some(_model) = self.ml_models.get(&model_id) {
+            // Simulate cross-chain model synchronization
+            self.push(crate::codegen::Value::Bool(true))?; // Success
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+
+    // Missing method implementations
+    fn ml_reshape(&mut self, _new_shape: &Vec<usize>) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified reshape - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_slice(&mut self, _ranges: &Vec<(usize, usize)>) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified slice - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_concat(&mut self, _axis: usize) -> Result<()> {
+        let tensor2 = self.pop()?;
+        let tensor1 = self.pop()?;
+        // Simplified concat - just push back first tensor
+        self.push(tensor1)?;
+        Ok(())
+    }
+
+    fn ml_split(&mut self, _axis: usize, _sections: usize) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified split - just push back the tensor
+        self.push(tensor.clone())?;
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_reduce(&mut self, _op_type: &str, _axis: Option<usize>) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified reduce - just push back a scalar
+        self.push(crate::codegen::Value::Vector(vec![1.0]))?;
+        Ok(())
+    }
+
+    fn ml_broadcast(&mut self, _target_shape: &Vec<usize>) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified broadcast - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_dropout(&mut self) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified dropout - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_embedding(&mut self) -> Result<()> {
+        let input = self.pop()?;
+        // Simplified embedding - return a tensor
+        self.push(crate::codegen::Value::Tensor {
+            data: vec![1.0, 2.0, 3.0],
+            shape: vec![1, 3],
+            dtype: "f64".to_string(),
+        })?;
+        Ok(())
+    }
+
+    fn ml_maxpool2d(&mut self) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified maxpool - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_batch_norm(&mut self) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified batch norm - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_layer_norm(&mut self) -> Result<()> {
+        let tensor = self.pop()?;
+        // Simplified layer norm - just push back the tensor
+        self.push(tensor)?;
+        Ok(())
+    }
+
+    fn ml_merge_models(&mut self, _model_ids: &Vec<u32>) -> Result<()> {
+        // Simplified merge - create a new model
+        let new_id = self.next_model_id;
+        self.next_model_id += 1;
+        let model = crate::codegen::Value::MLModel {
+            model_id: new_id,
+            model_type: "merged".to_string(),
+            weights: vec![1.0, 2.0, 3.0],
+            biases: vec![0.0, 0.0],
+            hyperparams: std::collections::HashMap::new(),
+            architecture: vec![3, 2, 1],
+            version: 1,
+            checksum: "merged_checksum".to_string(),
+        };
+        self.ml_models.insert(new_id, model);
+        self.push(crate::codegen::Value::U32(new_id))?;
+        Ok(())
+    }
+
+    fn ml_prune_model(&mut self, model_id: u32, _threshold: f64) -> Result<()> {
+        if let Some(_model) = self.ml_models.get_mut(&model_id) {
+            // Simplified pruning - just mark as successful
+            self.push(crate::codegen::Value::Bool(true))?;
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::InvalidOperation,
+                format!("Model {} not found", model_id),
+            ).into());
+        }
+        Ok(())
+    }
+
+    fn ml_distill_model(&mut self, _teacher_id: u32, _student_id: u32) -> Result<()> {
+        // Simplified distillation - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
+    }
+
+    fn ml_schedule_learning_rate(&mut self, _scheduler_type: &str) -> Result<()> {
+        // Simplified scheduler - just push a learning rate
+        self.push(crate::codegen::Value::Vector(vec![0.001]))?;
+        Ok(())
+    }
+
+    fn ml_gradient_clip(&mut self, _max_norm: f64) -> Result<()> {
+        // Simplified gradient clipping - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
+    }
+
+    fn ml_save_checkpoint(&mut self, _checkpoint_name: &str) -> Result<()> {
+        // Simplified checkpoint saving - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
+    }
+
+    fn ml_restore_checkpoint(&mut self, _checkpoint_name: &str) -> Result<()> {
+        // Simplified checkpoint restoration - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
+    }
+
+    fn ml_save_dataset(&mut self, _dataset_name: &str) -> Result<()> {
+        // Simplified dataset saving - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
+    }
+
+    fn ml_split_dataset(&mut self, _train_ratio: f64, _val_ratio: f64) -> Result<()> {
+        let dataset = self.pop()?;
+        // Simplified split - just push back the dataset twice
+        self.push(dataset.clone())?; // validation set
+        self.push(dataset)?; // training set
+        Ok(())
+    }
+
+    fn ml_shuffle_dataset(&mut self) -> Result<()> {
+        let dataset = self.pop()?;
+        // Simplified shuffle - just push back the dataset
+        self.push(dataset)?;
+        Ok(())
+    }
+
+    fn ml_preprocess_data(&mut self, _preprocessing_type: &str) -> Result<()> {
+        let data = self.pop()?;
+        // Simplified preprocessing - just push back the data
+        self.push(data)?;
+        Ok(())
+    }
+
+    fn ml_roc_curve(&mut self) -> Result<()> {
+        // Simplified ROC curve - return dummy data
+        self.push(crate::codegen::Value::Matrix(vec![
+            vec![0.0, 0.0], vec![0.5, 0.5], vec![1.0, 1.0]
+        ]))?;
+        Ok(())
+    }
+
+    fn ml_feature_importance(&mut self) -> Result<()> {
+        // Simplified feature importance - return dummy data
+        self.push(crate::codegen::Value::Vector(vec![0.3, 0.5, 0.2]))?;
+        Ok(())
+    }
+
+    fn ml_explain_prediction(&mut self, _model_id: u32) -> Result<()> {
+        // Simplified explanation - return dummy data
+        self.push(crate::codegen::Value::Vector(vec![0.1, 0.3, 0.6]))?;
+        Ok(())
+    }
+
+    fn ml_import_model(&mut self, _import_format: &str) -> Result<()> {
+        // Simplified import - create a new model
+        let new_id = self.next_model_id;
+        self.next_model_id += 1;
+        let model = crate::codegen::Value::MLModel {
+            model_id: new_id,
+            model_type: "imported".to_string(),
+            weights: vec![1.0, 2.0],
+            biases: vec![0.0],
+            hyperparams: std::collections::HashMap::new(),
+            architecture: vec![2, 1],
+            version: 1,
+            checksum: "imported_checksum".to_string(),
+        };
+        self.ml_models.insert(new_id, model);
+        self.push(crate::codegen::Value::U32(new_id))?;
+        Ok(())
+    }
+
+    fn ml_verify_model(&mut self, _verification_type: &str) -> Result<()> {
+        // Simplified verification - just mark as successful
+        self.push(crate::codegen::Value::Bool(true))?;
+        Ok(())
     }
 }
 

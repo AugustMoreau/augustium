@@ -124,7 +124,7 @@ fn test_string_crypto_integration() {
     }
     
     // Hash the string
-    let hash = crypto::Hash::sha256(&data_vec).unwrap();
+    let _hash = crypto::Hash::sha256(&data_vec).unwrap();
     
     // Test hex encoding/decoding
     let test_string = string::AugString::from_str("Hello, World!");
@@ -155,7 +155,7 @@ fn test_collections_math_integration() {
     assert_eq!(total.to_u64().unwrap(), 1000);
     
     // Calculate average
-    let count = U256::new(numbers.len() as u64);
+    let _count = U256::new(numbers.len() as u64);
     let average = total.checked_sub(U256::new(750)).unwrap(); // Simplified calculation
     assert_eq!(average.to_u64().unwrap(), 250);
 }

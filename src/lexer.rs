@@ -10,6 +10,7 @@ use std::fmt;
 pub enum TokenType {
     // Literals
     IntegerLiteral(u64),
+    FloatLiteral(f64),
     StringLiteral(String),
     BooleanLiteral(bool),
     AddressLiteral(String),
@@ -48,6 +49,35 @@ pub enum TokenType {
     Revert,
     As,
     Indexed,
+    
+    // ML Keywords
+    MLModel,
+    MLTrain,
+    MLPredict,
+    MLForward,
+    MLBackward,
+    Tensor,
+    Matrix,
+    Vector,
+    // Dataset removed - can be used as variable name
+    Metrics,
+    
+    // Advanced ML Keywords
+    MLConv2D,
+    MLAttention,
+    MLClone,
+    MLQuantize,
+    MLEvaluate,
+    MLExport,
+    MLSync,
+    MLAugment,
+    MLLoadDataset,
+    MLConfusionMatrix,
+    
+    // Tensor creation functions
+    CreateTensor,
+    CreateVector,
+    CreateMatrix,
     
     // Types
     U8, U16, U32, U64, U128, U256,
@@ -102,9 +132,11 @@ pub enum TokenType {
     At,             // @
     Hash,           // #
     Dollar,         // $
+    #[allow(dead_code)]
     Underscore,     // _
-    
+
     // Special tokens
+    #[allow(dead_code)]
     Newline,
     Eof,
     
@@ -168,6 +200,35 @@ impl Lexer {
         keywords.insert("as".to_string(), TokenType::As);
         keywords.insert("indexed".to_string(), TokenType::Indexed);
         
+        // Insert ML keywords
+        keywords.insert("ml_model".to_string(), TokenType::MLModel);
+        keywords.insert("ml_train".to_string(), TokenType::MLTrain);
+        keywords.insert("ml_predict".to_string(), TokenType::MLPredict);
+        keywords.insert("ml_forward".to_string(), TokenType::MLForward);
+        keywords.insert("ml_backward".to_string(), TokenType::MLBackward);
+        // keywords.insert("tensor".to_string(), TokenType::Tensor); // Allow as variable name
+        // keywords.insert("matrix".to_string(), TokenType::Matrix); // Allow as variable name
+        keywords.insert("vector".to_string(), TokenType::Vector);
+        // Note: "dataset" and "metrics" removed as keywords to allow them as variable names
+        // keywords.insert("metrics".to_string(), TokenType::Metrics);
+        
+        // Advanced ML keywords
+        keywords.insert("ml_conv2d".to_string(), TokenType::MLConv2D);
+        keywords.insert("ml_attention".to_string(), TokenType::MLAttention);
+        keywords.insert("ml_clone".to_string(), TokenType::MLClone);
+        keywords.insert("ml_quantize".to_string(), TokenType::MLQuantize);
+        keywords.insert("ml_evaluate".to_string(), TokenType::MLEvaluate);
+        keywords.insert("ml_export".to_string(), TokenType::MLExport);
+        keywords.insert("ml_sync".to_string(), TokenType::MLSync);
+        keywords.insert("ml_augment".to_string(), TokenType::MLAugment);
+        keywords.insert("ml_load_dataset".to_string(), TokenType::MLLoadDataset);
+        keywords.insert("ml_confusion_matrix".to_string(), TokenType::MLConfusionMatrix);
+        
+        // Tensor creation functions
+        keywords.insert("create_tensor".to_string(), TokenType::CreateTensor);
+        keywords.insert("create_vector".to_string(), TokenType::CreateVector);
+        keywords.insert("create_matrix".to_string(), TokenType::CreateMatrix);
+        
         // Insert type keywords
         keywords.insert("u8".to_string(), TokenType::U8);
         keywords.insert("u16".to_string(), TokenType::U16);
@@ -230,7 +291,7 @@ impl Lexer {
     }
     
     /// Get the next token from the input
-    fn next_token(&mut self) -> Result<Option<Token>> {
+    pub fn next_token(&mut self) -> Result<Option<Token>> {
         self.skip_whitespace();
         
         if self.is_at_end() {
@@ -484,12 +545,27 @@ impl Lexer {
         while !self.is_at_end() && self.peek().is_ascii_digit() {
             self.advance();
         }
+        
+        // Check for decimal point (floating-point number)
+        let mut is_float = false;
+        if !self.is_at_end() && self.peek() == '.' {
+            // Look ahead to make sure it's not a method call (e.g., "42.method()")
+            if self.position + 1 < self.input.len() && self.input[self.position + 1].is_ascii_digit() {
+                is_float = true;
+                self.advance(); // consume '.'
+                
+                // Consume fractional part
+                while !self.is_at_end() && self.peek().is_ascii_digit() {
+                    self.advance();
+                }
+            }
+        }
 
-        // Optional numeric type suffix (e.g. i64, u128)
+        // Optional numeric type suffix (e.g. i64, u128, f32, f64)
         if !self.is_at_end() {
             let c = self.peek();
-            if c == 'i' || c == 'u' {
-                // consume leading 'i' or 'u'
+            if c == 'i' || c == 'u' || c == 'f' {
+                // consume leading 'i', 'u', or 'f'
                 self.advance();
                 // consume the digits of the suffix
                 while !self.is_at_end() && self.peek().is_ascii_digit() {
@@ -500,25 +576,52 @@ impl Lexer {
         }
         
         let number_raw: String = self.input[start_pos..self.position].iter().collect();
-        let digits_only: String = number_raw
-            .chars()
-            .take_while(|ch| ch.is_ascii_hexdigit()) // stops before optional suffix
-            .collect();
         
-        match digits_only.parse::<u64>() {
-            Ok(value) => {
-                Ok(Token {
-                    token_type: TokenType::IntegerLiteral(value),
-                    location: start_location,
-                    raw: number_raw,
-                })
+        if is_float {
+            // Extract just the numeric part (without suffix)
+            let digits_only: String = number_raw
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
+                .collect();
+            
+            match digits_only.parse::<f64>() {
+                Ok(value) => {
+                    Ok(Token {
+                        token_type: TokenType::FloatLiteral(value),
+                        location: start_location,
+                        raw: number_raw,
+                    })
+                }
+                Err(_) => {
+                    Err(LexError::new(
+                        LexErrorKind::InvalidNumber,
+                        start_location,
+                        format!("Invalid float number: {}", number_raw),
+                    ).into())
+                }
             }
-            Err(_) => {
-                Err(LexError::new(
-                    LexErrorKind::InvalidNumber,
-                    start_location,
-                    format!("Invalid number: {}", number_raw),
-                ).into())
+        } else {
+            // Extract just the numeric part (without suffix)
+            let digits_only: String = number_raw
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit())
+                .collect();
+            
+            match digits_only.parse::<u64>() {
+                Ok(value) => {
+                    Ok(Token {
+                        token_type: TokenType::IntegerLiteral(value),
+                        location: start_location,
+                        raw: number_raw,
+                    })
+                }
+                Err(_) => {
+                    Err(LexError::new(
+                        LexErrorKind::InvalidNumber,
+                        start_location,
+                        format!("Invalid integer number: {}", number_raw),
+                    ).into())
+                }
             }
         }
     }
@@ -635,13 +738,7 @@ impl Lexer {
     }
     
     /// Get the next character without advancing
-    fn peek_next(&self) -> char {
-        if self.position + 1 >= self.input.len() {
-            '\0'
-        } else {
-            self.input[self.position + 1]
-        }
-    }
+
     
     /// Advance to the next character and return the current one
     fn advance(&mut self) -> char {

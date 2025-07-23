@@ -1,0 +1,249 @@
+name: Release and Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '0.1.0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: augustium-linux-x86_64.tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: augustium-linux-aarch64.tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: augustium-macos-x86_64.tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: augustium-macos-aarch64.tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: augustium-windows-x86_64.zip
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    
+    - name: Install cross-compilation tools
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+        echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+    
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }}
+    
+    - name: Package (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir -p dist
+        cp target/${{ matrix.target }}/release/augustc dist/
+        cp target/${{ matrix.target }}/release/august dist/
+        cp README.md LICENSE dist/
+        tar -czf ${{ matrix.name }} -C dist .
+    
+    - name: Package (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir dist
+        cp target/${{ matrix.target }}/release/augustc.exe dist/
+        cp target/${{ matrix.target }}/release/august.exe dist/
+        cp README.md LICENSE dist/
+        Compress-Archive -Path dist/* -DestinationPath ${{ matrix.name }}
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}
+        path: ${{ matrix.name }}
+
+  publish-github:
+    name: Publish to GitHub Releases
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'release' && !cancelled()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Upload to release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: '**/*'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-cargo:
+    name: Publish to Cargo
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Publish to crates.io
+      run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-npm:
+    name: Publish to NPM
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'release' && !cancelled()
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+    
+    - name: Prepare NPM package with binaries
+      run: |
+        # Extract binaries from artifacts (only if they exist)
+        mkdir -p bin-temp
+        
+        # Linux x86_64
+        if [ -f "augustium-linux-x86_64.tar.gz/augustium-linux-x86_64.tar.gz" ]; then
+          tar -xzf augustium-linux-x86_64.tar.gz/augustium-linux-x86_64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-linux-x86_64 2>/dev/null || true
+          mv bin-temp/august bin/august-linux-x86_64 2>/dev/null || true
+        fi
+        
+        # Linux aarch64
+        if [ -f "augustium-linux-aarch64.tar.gz/augustium-linux-aarch64.tar.gz" ]; then
+          tar -xzf augustium-linux-aarch64.tar.gz/augustium-linux-aarch64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-linux-aarch64 2>/dev/null || true
+          mv bin-temp/august bin/august-linux-aarch64 2>/dev/null || true
+        fi
+        
+        # macOS x86_64
+        if [ -f "augustium-macos-x86_64.tar.gz/augustium-macos-x86_64.tar.gz" ]; then
+          tar -xzf augustium-macos-x86_64.tar.gz/augustium-macos-x86_64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-macos-x86_64 2>/dev/null || true
+          mv bin-temp/august bin/august-macos-x86_64 2>/dev/null || true
+        fi
+        
+        # macOS aarch64
+        if [ -f "augustium-macos-aarch64.tar.gz/augustium-macos-aarch64.tar.gz" ]; then
+          tar -xzf augustium-macos-aarch64.tar.gz/augustium-macos-aarch64.tar.gz -C bin-temp
+          mv bin-temp/augustc bin/augustc-macos-aarch64 2>/dev/null || true
+          mv bin-temp/august bin/august-macos-aarch64 2>/dev/null || true
+        fi
+        
+        # Windows x86_64
+        if [ -f "augustium-windows-x86_64.zip/augustium-windows-x86_64.zip" ]; then
+          unzip -q augustium-windows-x86_64.zip/augustium-windows-x86_64.zip -d bin-temp 2>/dev/null || true
+          mv bin-temp/augustc.exe bin/augustc-windows-x86_64.exe 2>/dev/null || true
+          mv bin-temp/august.exe bin/august-windows-x86_64.exe 2>/dev/null || true
+        fi
+        
+        # Windows aarch64
+        if [ -f "augustium-windows-aarch64.zip/augustium-windows-aarch64.zip" ]; then
+          unzip -q augustium-windows-aarch64.zip/augustium-windows-aarch64.zip -d bin-temp 2>/dev/null || true
+          mv bin-temp/augustc.exe bin/augustc-windows-aarch64.exe 2>/dev/null || true
+          mv bin-temp/august.exe bin/august-windows-aarch64.exe 2>/dev/null || true
+        fi
+        
+        # Clean up
+        rm -rf bin-temp
+        
+        # Make binaries executable (only existing ones)
+        find bin -name "augustc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+        find bin -name "august-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+        
+        # List available binaries
+        echo "Available binaries:"
+        ls -la bin/ || true
+        
+        # Update package.json version to match release
+        node -e "const pkg = require('./package.json'); pkg.version = process.env.GITHUB_REF_NAME.replace('v', ''); require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+    
+    - name: Publish to NPM
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-docker:
+    name: Publish to Docker Hub
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Extract version
+      id: version
+      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          augustium/augustium:latest
+          augustium/augustium:${{ steps.version.outputs.version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    needs: publish-github
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Update Homebrew formula
+      uses: mislav/bump-homebrew-formula-action@v3
+      with:
+        formula-name: augustium
+        formula-path: Formula/augustium.rb
+        homebrew-tap: AugustMoreau/homebrew-augustium
+        download-url: https://github.com/AugustMoreau/augustium/archive/${{ github.ref_name }}.tar.gz
+        commit-message: |
+          augustium ${{ github.ref_name }}
+          
+          Created by https://github.com/mislav/bump-homebrew-formula-action
+      env:
+        COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}

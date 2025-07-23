@@ -1,0 +1,62 @@
+{
+  "name": "augustium",
+  "version": "1.0.11",
+  "description": "The Augustium programming language compiler and virtual machine for blockchain smart contracts",
+  "main": "index.js",
+  "bin": {
+    "augustc": "./bin/augustc",
+    "august": "./bin/august",
+    "augustium-lsp": "./bin/augustium-lsp"
+  },
+  "scripts": {
+    "install": "node install.js",
+    "postinstall": "node postinstall.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "blockchain",
+    "smart-contracts",
+    "compiler",
+    "virtual-machine",
+    "augustium",
+    "cryptocurrency",
+    "web3",
+    "defi"
+  ],
+  "author": "August Moreau <august@augustium.org>",
+  "contributors": [
+    "Augustium Team"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AugustMoreau/augustium.git"
+  },
+  "homepage": "https://augustium.org",
+  "bugs": {
+    "url": "https://github.com/AugustMoreau/augustium/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "src/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "install.js",
+    "postinstall.js",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ]
+}

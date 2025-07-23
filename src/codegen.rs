@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 // Individual VM instructions that our bytecode is made of
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum Instruction {
     // Stack operations
     Push(Value),
@@ -73,6 +74,78 @@ pub enum Instruction {
     Assert,
     Revert,
     
+    // Machine Learning operations - Phase 1 Enhanced
+    MLCreateModel(String),     // Model type ("neural_network", "linear_regression", etc.)
+    MLLoadModel(u32),          // Model ID
+    MLSaveModel(u32),          // Model ID
+    MLTrain(u32),              // Model ID
+    MLPredict(u32),            // Model ID
+    MLSetHyperparams(u32),     // Model ID
+    MLGetMetrics(u32),         // Model ID
+    MLForward(u32),            // Neural network forward pass
+    MLBackward(u32),           // Neural network backward pass
+    MLUpdateWeights(u32),      // Update model weights
+    MLNormalize,               // Data normalization
+    MLDenormalize,             // Data denormalization
+    MLActivation(String),      // Activation function ("relu", "sigmoid", "tanh")
+    MLLoss(String),            // Loss function ("mse", "cross_entropy")
+    MLOptimizer(String),       // Optimizer ("sgd", "adam", "rmsprop")
+    
+    // Enhanced ML Instructions - Phase 1
+    MLCreateTensor(Vec<usize>), // Create tensor with dimensions
+    MLTensorOp(String),        // Tensor operations ("add", "mul", "matmul", "transpose")
+    MLReshape(Vec<usize>),     // Reshape tensor
+    MLSlice(Vec<(usize, usize)>), // Slice tensor
+    MLConcat(usize),           // Concatenate tensors along axis
+    MLSplit(usize, usize),     // Split tensor along axis
+    MLReduce(String, Option<usize>), // Reduce operations ("sum", "mean", "max", "min")
+    MLBroadcast(Vec<usize>),   // Broadcast tensor to shape
+    
+    // Advanced Neural Network Operations
+    MLConv2D(u32, u32, u32, u32), // Convolution (filters, kernel_size, stride, padding)
+    MLMaxPool2D(u32, u32),     // Max pooling (pool_size, stride)
+    MLDropout(f64),            // Dropout with probability
+    MLBatchNorm,               // Batch normalization
+    MLLayerNorm,               // Layer normalization
+    MLAttention,               // Self-attention mechanism
+    MLEmbedding(u32, u32),     // Embedding layer (vocab_size, embed_dim)
+    
+    // Model Management
+    MLCloneModel(u32),         // Clone existing model
+    MLMergeModels(Vec<u32>),   // Merge multiple models
+    MLQuantizeModel(u32, String), // Quantize model ("int8", "int16")
+    MLPruneModel(u32, f64),    // Prune model with threshold
+    MLDistillModel(u32, u32),  // Knowledge distillation (teacher, student)
+    
+    // Training Operations
+    MLSetLearningRate(f64),    // Set learning rate
+    MLScheduleLR(String),      // Learning rate scheduler
+    MLGradientClip(f64),       // Gradient clipping
+    MLEarlyStopping(u32, f64), // Early stopping (patience, min_delta)
+    MLCheckpoint(String),      // Save training checkpoint
+    MLRestoreCheckpoint(String), // Restore from checkpoint
+    
+    // Data Operations
+    MLLoadDataset(String),     // Load dataset from storage
+    MLSaveDataset(String),     // Save dataset to storage
+    MLSplitDataset(f64, f64),  // Split dataset (train_ratio, val_ratio)
+    MLShuffleDataset,          // Shuffle dataset
+    MLAugmentData(String),     // Data augmentation
+    MLPreprocessData(String),  // Data preprocessing pipeline
+    
+    // Evaluation and Metrics
+    MLEvaluate(u32),           // Evaluate model on test set
+    MLConfusionMatrix,         // Generate confusion matrix
+    MLROCCurve,                // Generate ROC curve
+    MLFeatureImportance,       // Calculate feature importance
+    MLExplainPrediction(u32),  // Explain model prediction
+    
+    // Cross-Chain ML Operations
+    MLExportModel(String),     // Export model for cross-chain
+    MLImportModel(String),     // Import model from cross-chain
+    MLVerifyModel(String),     // Verify model integrity
+    MLSyncModel(u32, String),  // Sync model across chains
+    
     // Debugging
     Debug(String),
     
@@ -95,16 +168,81 @@ pub enum Value {
     I64(i64),
     I128(i128),
     I256([u8; 32]),
+    F32(f32),
+    F64(f64),
     Bool(bool),
     String(String),
     Address([u8; 20]),
     Array(Vec<Value>),
     Tuple(Vec<Value>),
-    Null,
+    // Machine Learning types - Enhanced Phase 1
+    MLModel {
+        model_id: u32,
+        model_type: String,
+        weights: Vec<f64>,
+        biases: Vec<f64>,
+        hyperparams: std::collections::HashMap<String, f64>,
+        architecture: Vec<u32>, // Layer sizes
+        version: u32,
+        checksum: String,
+    },
+    MLDataset {
+        features: Vec<Vec<f64>>,
+        targets: Vec<f64>,
+        normalized: bool,
+        metadata: std::collections::HashMap<String, String>,
+        split_info: Option<(f64, f64)>, // train_ratio, val_ratio
+    },
+    MLMetrics {
+        accuracy: f64,
+        loss: f64,
+        precision: f64,
+        recall: f64,
+        f1_score: f64,
+        auc_roc: f64,
+        confusion_matrix: Vec<Vec<u32>>,
+    },
+    Tensor {
+        data: Vec<f64>,
+        shape: Vec<usize>,
+        dtype: String, // "f32", "f64", "i32", etc.
+    },
+    Matrix(Vec<Vec<f64>>),     // 2D matrix
+    Vector(Vec<f64>),          // 1D vector
+    
+    // Advanced ML Types
+    MLOptimizer {
+        optimizer_type: String, // "sgd", "adam", "rmsprop"
+        learning_rate: f64,
+        momentum: Option<f64>,
+        beta1: Option<f64>,
+        beta2: Option<f64>,
+        epsilon: Option<f64>,
+    },
+    MLScheduler {
+        scheduler_type: String, // "step", "exponential", "cosine"
+        step_size: Option<u32>,
+        gamma: Option<f64>,
+        t_max: Option<u32>,
+    },
+    MLCheckpoint {
+        model_state: Vec<u8>,
+        optimizer_state: Vec<u8>,
+        epoch: u32,
+        loss: f64,
+        timestamp: u64,
+    },
+    MLExplanation {
+         feature_importance: Vec<f64>,
+         shap_values: Vec<f64>,
+         lime_explanation: std::collections::HashMap<String, f64>,
+     },
+     Null,
 }
 
 impl Value {
     /// Get the type of this value
+    #[allow(dead_code)]
     pub fn get_type(&self) -> Type {
         match self {
             Value::U8(_) => Type::U8,
@@ -119,6 +257,8 @@ impl Value {
             Value::I64(_) => Type::I64,
             Value::I128(_) => Type::I128,
             Value::I256(_) => Type::I256,
+            Value::F32(_) => Type::F32,
+            Value::F64(_) => Type::F64,
             Value::Bool(_) => Type::Bool,
             Value::String(_) => Type::String,
             Value::Address(_) => Type::Address,
@@ -138,6 +278,23 @@ impl Value {
             Value::Tuple(elements) => {
                 Type::Tuple(elements.iter().map(|v| v.get_type()).collect())
             }
+            Value::MLModel { .. } => Type::MLModel {
+                model_type: "neural_network".to_string(),
+                input_shape: vec![],
+                output_shape: vec![],
+            },
+            Value::MLDataset { .. } => Type::MLDataset {
+                feature_types: vec![],
+                target_type: Box::new(Type::U32),
+            },
+            Value::MLMetrics { .. } => Type::MLMetrics,
+            Value::Tensor { data: _, shape: _, dtype: _ } => Type::Tensor { element_type: Box::new(Type::U32), dimensions: vec![] },
+            Value::Matrix(_) => Type::Matrix { element_type: Box::new(Type::U32), rows: 0, cols: 0 },
+            Value::Vector(_) => Type::Vector { element_type: Box::new(Type::U32), size: None },
+            Value::MLOptimizer { .. } => Type::U32, // Placeholder
+            Value::MLScheduler { .. } => Type::U32, // Placeholder
+            Value::MLCheckpoint { .. } => Type::U32, // Placeholder
+            Value::MLExplanation { .. } => Type::U32, // Placeholder
             Value::Null => Type::U32, // Placeholder
         }
     }
@@ -147,7 +304,9 @@ impl Value {
 #[derive(Debug, Clone)]
 pub struct Bytecode {
     pub instructions: Vec<Instruction>,
+    #[allow(dead_code)]
     pub constants: Vec<Value>,
+    #[allow(dead_code)]
     pub functions: HashMap<String, u32>, // Function name -> instruction offset
     pub contracts: HashMap<String, ContractBytecode>,
 }
@@ -171,15 +330,19 @@ pub struct ContractBytecode {
     pub constructor: Vec<Instruction>,
     pub functions: HashMap<String, Vec<Instruction>>,
     pub fields: HashMap<String, u32>, // Field name -> field index
+    #[allow(dead_code)]
     pub events: HashMap<String, Vec<Type>>, // Event name -> parameter types
 }
 
 /// Local variable information
 #[derive(Debug, Clone)]
 struct LocalVariable {
+    #[allow(dead_code)]
     name: String,
+    #[allow(dead_code)]
     var_type: Type,
     index: u32,
+    #[allow(dead_code)]
     mutable: bool,
 }
 
@@ -274,8 +437,8 @@ impl CodeGenerator {
     }
     
     /// Generate bytecode for a source file
-    pub fn generate(&mut self, source_file: &SourceFile) -> Result<Bytecode> {
-        for item in &source_file.items {
+    pub fn generate(&mut self, ast: &SourceFile) -> Result<Bytecode> {
+        for item in &ast.items {
             self.generate_item(item)?;
         }
         
@@ -327,11 +490,12 @@ impl CodeGenerator {
         
         // Generate functions
         for function in &contract.functions {
-            let old_instructions = std::mem::take(&mut self.instructions);
+            let function_start = self.instructions.len();
             self.generate_function(function)?;
+            let function_instructions = self.instructions[function_start..].to_vec();
             contract_bytecode.functions.insert(
                 function.name.name.clone(),
-                std::mem::replace(&mut self.instructions, old_instructions),
+                function_instructions,
             );
         }
         
@@ -549,7 +713,7 @@ impl CodeGenerator {
         self.context.push_loop_labels(loop_end, loop_start);
         
         // Add loop variable
-        let loop_var_index = self.context.add_local(
+        let _loop_var_index = self.context.add_local(
             for_stmt.variable.name.clone(),
             Type::U32, // Placeholder
             false,
@@ -686,6 +850,14 @@ impl CodeGenerator {
             Expression::Assignment(assign_expr) => self.generate_assignment_expression(assign_expr),
             Expression::Range(range_expr) => self.generate_range_expression(range_expr),
             Expression::Closure(closure_expr) => self.generate_closure_expression(closure_expr),
+            // Machine Learning expressions
+            Expression::MLCreateModel(ml_create) => self.generate_ml_create_model(ml_create),
+            Expression::MLTrain(ml_train) => self.generate_ml_train(ml_train),
+            Expression::MLPredict(ml_predict) => self.generate_ml_predict(ml_predict),
+            Expression::MLForward(ml_forward) => self.generate_ml_forward(ml_forward),
+            Expression::MLBackward(ml_backward) => self.generate_ml_backward(ml_backward),
+            Expression::TensorOp(tensor_op) => self.generate_tensor_op(tensor_op),
+            Expression::MatrixOp(matrix_op) => self.generate_matrix_op(matrix_op),
             Expression::Block(block) => {
                 self.generate_block(block)?;
                 // Block expressions should leave a value on the stack
@@ -699,6 +871,7 @@ impl CodeGenerator {
     fn generate_literal(&mut self, literal: &Literal) -> Result<()> {
         let value = match literal {
             Literal::Integer(n) => Value::U32(*n as u32),
+            Literal::Float(f) => Value::F64(*f),
             Literal::String(s) => Value::String(s.clone()),
             Literal::Boolean(b) => Value::Bool(*b),
             Literal::Address(addr) => {
@@ -943,11 +1116,187 @@ impl CodeGenerator {
         Ok(())
     }
     
+    /// Generate code for ML create model expression
+    fn generate_ml_create_model(&mut self, ml_create: &MLCreateModelExpression) -> Result<()> {
+        // Generate model configuration
+        for (key, value) in &ml_create.config {
+            self.generate_expression(value)?;
+            // Store config value with key
+            self.emit(Instruction::Push(Value::String(key.clone())));
+        }
+        
+        // Create the model
+        self.emit(Instruction::MLCreateModel(ml_create.model_type.clone()));
+        
+        Ok(())
+    }
+    
+    /// Generate code for ML train expression
+    fn generate_ml_train(&mut self, ml_train: &MLTrainExpression) -> Result<()> {
+        // Generate model reference
+        self.generate_expression(&ml_train.model)?;
+        
+        // Generate dataset
+        self.generate_expression(&ml_train.dataset)?;
+        
+        // Generate epochs if provided
+        if let Some(epochs) = &ml_train.epochs {
+            self.generate_expression(epochs)?;
+        } else {
+            // Default epochs
+            self.emit(Instruction::Push(Value::U32(100)));
+        }
+        
+        // Execute training
+        self.emit(Instruction::MLTrain(0)); // Model ID will be resolved at runtime
+        
+        Ok(())
+    }
+    
+    /// Generate code for ML predict expression
+    fn generate_ml_predict(&mut self, ml_predict: &MLPredictExpression) -> Result<()> {
+        // Generate model reference
+        self.generate_expression(&ml_predict.model)?;
+        
+        // Generate input data
+        self.generate_expression(&ml_predict.input)?;
+        
+        // Execute prediction
+        self.emit(Instruction::MLPredict(0)); // Model ID will be resolved at runtime
+        
+        Ok(())
+    }
+    
+    /// Generate code for ML forward expression
+    fn generate_ml_forward(&mut self, ml_forward: &MLForwardExpression) -> Result<()> {
+        // Generate model reference
+        self.generate_expression(&ml_forward.model)?;
+        
+        // Generate input data
+        self.generate_expression(&ml_forward.input)?;
+        
+        // Execute forward pass
+        self.emit(Instruction::MLForward(0)); // Model ID will be resolved at runtime
+        
+        Ok(())
+    }
+    
+    /// Generate code for ML backward expression
+    fn generate_ml_backward(&mut self, ml_backward: &MLBackwardExpression) -> Result<()> {
+        // Generate model reference
+        self.generate_expression(&ml_backward.model)?;
+        
+        // Generate gradients
+        self.generate_expression(&ml_backward.gradients)?;
+        
+        // Execute backward pass
+        self.emit(Instruction::MLBackward(0)); // Model ID will be resolved at runtime
+        
+        Ok(())
+    }
+    
+    /// Generate code for tensor operations
+    fn generate_tensor_op(&mut self, tensor_op: &TensorOpExpression) -> Result<()> {
+        // Generate operands
+        for operand in &tensor_op.operands {
+            self.generate_expression(operand)?;
+        }
+        
+        // Generate tensor operation based on type
+        match tensor_op.operation {
+            TensorOperation::Add => {
+                self.emit(Instruction::Add);
+            }
+            TensorOperation::Subtract => {
+                self.emit(Instruction::Sub);
+            }
+            TensorOperation::Multiply => {
+                self.emit(Instruction::Mul);
+            }
+            TensorOperation::Divide => {
+                self.emit(Instruction::Div);
+            }
+            TensorOperation::MatMul => {
+                // Matrix multiplication - custom instruction needed
+                self.emit(Instruction::Push(Value::String("matmul".to_string())));
+                self.emit(Instruction::MLActivation("matmul".to_string()));
+            }
+            TensorOperation::Transpose => {
+                self.emit(Instruction::Push(Value::String("transpose".to_string())));
+                self.emit(Instruction::MLActivation("transpose".to_string()));
+            }
+            TensorOperation::Reshape => {
+                self.emit(Instruction::Push(Value::String("reshape".to_string())));
+                self.emit(Instruction::MLActivation("reshape".to_string()));
+            }
+            TensorOperation::Sum => {
+                self.emit(Instruction::Push(Value::String("sum".to_string())));
+                self.emit(Instruction::MLActivation("sum".to_string()));
+            }
+            TensorOperation::Mean => {
+                self.emit(Instruction::Push(Value::String("mean".to_string())));
+                self.emit(Instruction::MLActivation("mean".to_string()));
+            }
+            TensorOperation::Max => {
+                self.emit(Instruction::Push(Value::String("max".to_string())));
+                self.emit(Instruction::MLActivation("max".to_string()));
+            }
+            TensorOperation::Min => {
+                self.emit(Instruction::Push(Value::String("min".to_string())));
+                self.emit(Instruction::MLActivation("min".to_string()));
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Generate code for matrix operations
+    fn generate_matrix_op(&mut self, matrix_op: &MatrixOpExpression) -> Result<()> {
+        // Generate operands
+        for operand in &matrix_op.operands {
+            self.generate_expression(operand)?;
+        }
+        
+        // Generate matrix operation based on type
+        match matrix_op.operation {
+            MatrixOperation::Add => {
+                self.emit(Instruction::Add);
+            }
+            MatrixOperation::Subtract => {
+                self.emit(Instruction::Sub);
+            }
+            MatrixOperation::Multiply => {
+                self.emit(Instruction::Mul);
+            }
+            MatrixOperation::Transpose => {
+                self.emit(Instruction::Push(Value::String("transpose".to_string())));
+                self.emit(Instruction::MLActivation("transpose".to_string()));
+            }
+            MatrixOperation::Inverse => {
+                self.emit(Instruction::Push(Value::String("inverse".to_string())));
+                self.emit(Instruction::MLActivation("inverse".to_string()));
+            }
+            MatrixOperation::Determinant => {
+                self.emit(Instruction::Push(Value::String("determinant".to_string())));
+                self.emit(Instruction::MLActivation("determinant".to_string()));
+            }
+            MatrixOperation::Eigenvalues => {
+                self.emit(Instruction::Push(Value::String("eigenvalues".to_string())));
+                self.emit(Instruction::MLActivation("eigenvalues".to_string()));
+            }
+        }
+        
+        Ok(())
+    }
+    
     /// Emit an instruction
     fn emit(&mut self, instruction: Instruction) {
         self.instructions.push(instruction);
     }
     
+    pub fn get_instructions(&self) -> Vec<Instruction> {
+        self.instructions.clone()
+    }
     /// Place a label at the current instruction position
     fn place_label(&mut self, label: u32) {
         self.labels.insert(label, self.instructions.len() as u32);
@@ -984,6 +1333,8 @@ impl CodeGenerator {
             Type::I64 => Value::I64(0),
             Type::I128 => Value::I128(0),
             Type::I256 => Value::I256([0; 32]),
+            Type::F32 => Value::F32(0.0),
+            Type::F64 => Value::F64(0.0),
             Type::Bool => Value::Bool(false),
             Type::String => Value::String(String::new()),
             Type::Address => Value::Address([0; 20]),
@@ -995,6 +1346,35 @@ impl CodeGenerator {
                 }
                 Value::Tuple(elements)
             }
+            Type::MLModel { .. } => Value::MLModel {
+                model_id: 0,
+                model_type: "default".to_string(),
+                weights: vec![],
+                biases: vec![],
+                hyperparams: std::collections::HashMap::new(),
+                architecture: vec![],
+                version: 1,
+                checksum: "default".to_string(),
+            },
+            Type::MLDataset { .. } => Value::MLDataset {
+                features: vec![],
+                targets: vec![],
+                normalized: false,
+                metadata: std::collections::HashMap::new(),
+                split_info: None,
+            },
+            Type::MLMetrics => Value::MLMetrics {
+                accuracy: 0.0,
+                loss: 0.0,
+                precision: 0.0,
+                recall: 0.0,
+                f1_score: 0.0,
+                auc_roc: 0.0,
+                confusion_matrix: vec![],
+            },
+            Type::Tensor { .. } => Value::Tensor { data: vec![], shape: vec![], dtype: "f64".to_string() },
+            Type::Matrix { .. } => Value::Matrix(vec![]),
+            Type::Vector { .. } => Value::Vector(vec![]),
             _ => Value::Null,
         };
         

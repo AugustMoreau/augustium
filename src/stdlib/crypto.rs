@@ -34,6 +34,20 @@ impl Hash {
         Ok(hash_bytes)
     }
     
+    /// Raw keccak256 function that works with byte slices
+    fn keccak256_raw(data: &[u8]) -> Result<[u8; 32]> {
+        use sha3::{Keccak256, Digest};
+        
+        let mut hasher = Keccak256::new();
+        hasher.update(data);
+        let result = hasher.finalize();
+        
+        let mut hash_bytes = [0u8; 32];
+        hash_bytes.copy_from_slice(&result);
+        
+        Ok(hash_bytes)
+    }
+    
     // Keccak-256 - what Ethereum uses for hashing
     pub fn keccak256(data: &AugVec<U8>) -> Result<[U8; 32]> {
         use sha3::{Keccak256, Digest};
@@ -117,8 +131,7 @@ impl Signature {
         signature: &AugVec<U8>,
         recovery_id: U8,
     ) -> Result<Address> {
-        // For now, return a placeholder implementation
-        // In a real implementation, this would use secp256k1 library
+        use secp256k1::{Secp256k1, Message, ecdsa::{RecoveryId, RecoverableSignature}};
         
         if recovery_id.0 > 3 {
             return Err(CompilerError::SemanticError(SemanticError {
@@ -128,9 +141,78 @@ impl Signature {
             }));
         }
         
-        // Placeholder: return zero address
-        // Real implementation would recover the public key and derive address
-        Ok(Address::ZERO)
+        // Validate input lengths
+        if message_hash.len() != 32 {
+            return Err(CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Message hash must be 32 bytes".to_string(),
+            }));
+        }
+        
+        if signature.len() != 64 {
+            return Err(CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Signature must be 64 bytes".to_string(),
+            }));
+        }
+        
+        // Convert AugVec to bytes
+        let mut hash_bytes = [0u8; 32];
+        for i in 0..32 {
+            hash_bytes[i] = message_hash.get(i).unwrap().0;
+        }
+        
+        let mut sig_bytes = [0u8; 64];
+        for i in 0..64 {
+            sig_bytes[i] = signature.get(i).unwrap().0;
+        }
+        
+        // Create secp256k1 context
+        let secp = Secp256k1::new();
+        
+        // Parse message
+        let message = Message::from_digest_slice(&hash_bytes)
+            .map_err(|_| CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Invalid message hash".to_string(),
+            }))?;
+        
+        // Parse recovery ID
+        let recovery_id = RecoveryId::from_i32(recovery_id.0 as i32)
+            .map_err(|_| CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Invalid recovery ID".to_string(),
+            }))?;
+        
+        // Parse signature
+        let recoverable_sig = RecoverableSignature::from_compact(&sig_bytes, recovery_id)
+            .map_err(|_| CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Invalid signature format".to_string(),
+            }))?;
+        
+        // Recover public key
+        let public_key = secp.recover_ecdsa(&message, &recoverable_sig)
+            .map_err(|_| CompilerError::SemanticError(SemanticError {
+                kind: SemanticErrorKind::InvalidOperation,
+                location: SourceLocation::unknown(),
+                message: "Failed to recover public key".to_string(),
+            }))?;
+        
+        // Convert public key to Ethereum address
+        let public_key_bytes = public_key.serialize_uncompressed();
+        let public_key_hash = Hash::keccak256_raw(&public_key_bytes[1..65])?; // Skip first byte (0x04)
+        
+        // Take last 20 bytes as address
+        let mut address_bytes = [0u8; 20];
+        address_bytes.copy_from_slice(&public_key_hash[12..32]);
+        
+        Ok(Address::from_bytes(&address_bytes)?)
     }
     
     /// Verifies an ECDSA signature against a known public key
@@ -147,8 +229,7 @@ impl Signature {
         signature: &[U8; 64],
         public_key: &[U8; 64],
     ) -> Result<Bool> {
-        // Placeholder implementation
-        // Real implementation would use secp256k1 verification
+        use secp256k1::{Secp256k1, Message, PublicKey, ecdsa::Signature as Secp256k1Signature};
         
         // Basic validation: ensure no zero signatures
         let is_zero_sig = signature.iter().all(|&byte| byte.0 == 0);
@@ -158,8 +239,49 @@ impl Signature {
             return Ok(Bool(false));
         }
         
-        // Placeholder: return true for non-zero inputs
-        Ok(Bool(true))
+        // Convert U8 arrays to byte arrays
+        let mut hash_bytes = [0u8; 32];
+        for (i, &byte) in message_hash.iter().enumerate() {
+            hash_bytes[i] = byte.0;
+        }
+        
+        let mut sig_bytes = [0u8; 64];
+        for (i, &byte) in signature.iter().enumerate() {
+            sig_bytes[i] = byte.0;
+        }
+        
+        let mut pubkey_bytes = [0u8; 65]; // Uncompressed public key with 0x04 prefix
+        pubkey_bytes[0] = 0x04;
+        for (i, &byte) in public_key.iter().enumerate() {
+            pubkey_bytes[i + 1] = byte.0;
+        }
+        
+        // Create secp256k1 context
+        let secp = Secp256k1::verification_only();
+        
+        // Parse message
+        let message = match Message::from_digest_slice(&hash_bytes) {
+            Ok(msg) => msg,
+            Err(_) => return Ok(Bool(false)),
+        };
+        
+        // Parse public key
+        let public_key = match PublicKey::from_slice(&pubkey_bytes) {
+            Ok(pk) => pk,
+            Err(_) => return Ok(Bool(false)),
+        };
+        
+        // Parse signature
+        let signature = match Secp256k1Signature::from_compact(&sig_bytes) {
+            Ok(sig) => sig,
+            Err(_) => return Ok(Bool(false)),
+        };
+        
+        // Verify signature
+        match secp.verify_ecdsa(&message, &signature, &public_key) {
+            Ok(_) => Ok(Bool(true)),
+            Err(_) => Ok(Bool(false)),
+        }
     }
 }
 
@@ -390,8 +512,8 @@ mod tests {
     
     #[test]
     fn test_random_generation() {
-        let random_u256 = Random::secure_u256().unwrap();
-        let random_u8 = Random::secure_u8().unwrap();
+        let _random_u256 = Random::secure_u256().unwrap();
+        let _random_u8 = Random::secure_u8().unwrap();
         let random_bytes = Random::secure_bytes(10).unwrap();
         
         // Basic validation - should not panic and should have correct sizes

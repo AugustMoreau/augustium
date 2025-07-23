@@ -1,0 +1,88 @@
+{
+    "name": "augustium",
+    "displayName": "Augustium",
+    "description": "Language support for Augustium smart contract development with LSP integration. Visit https://augustium-lang.org for more info and https://docs.augustium-lang.org for documentation.",
+    "version": "1.1.1",
+    "publisher": "augustium-team",
+    "icon": "icon.png",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/AugustMoreau/augustium.git"
+    },
+    "homepage": "https://augustium-lang.org",
+    "bugs": {
+        "url": "https://github.com/AugustMoreau/augustium/issues"
+    },
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets",
+        "Linters"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "augustium",
+            "aliases": ["Augustium", "augustium"],
+            "extensions": [".aug"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "augustium",
+            "scopeName": "source.augustium",
+            "path": "./syntaxes/augustium.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "augustium",
+            "path": "./snippets/augustium.json"
+        }],
+        "configuration": {
+            "type": "object",
+            "title": "Augustium",
+            "properties": {
+                "augustium.lsp.path": {
+                    "type": "string",
+                    "default": "augustium-lsp",
+                    "description": "Path to the Augustium LSP server executable"
+                },
+                "augustium.lsp.trace.server": {
+                    "type": "string",
+                    "enum": ["off", "messages", "verbose"],
+                    "default": "off",
+                    "description": "Traces the communication between VS Code and the language server"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "augustium.restart",
+                "title": "Restart Language Server",
+                "category": "Augustium"
+            }
+        ]
+    },
+    "activationEvents": [
+        "onLanguage:augustium",
+        "workspaceContains:**/*.aug"
+    ],
+    "main": "./out/extension.js",
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "package": "vsce package",
+        "publish": "vsce publish",
+        "publish-ovsx": "npx ovsx publish",
+        "vscode:prepublish": "npm run compile"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^8.0.2"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "@types/node": "^16.0.0",
+        "typescript": "^4.4.0",
+        "@vscode/vsce": "^2.15.0"
+    }
+}

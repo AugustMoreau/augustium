@@ -1,0 +1,12 @@
+# Augustium language files
+*.aug linguist-language=Augustium
+
+# Documentation
+*.md linguist-documentation
+
+# Generated files
+*.avm linguist-generated
+*.aug.compiled linguist-generated
+
+# Vendor files
+/target/ linguist-vendored

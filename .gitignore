@@ -33,6 +33,7 @@ Thumbs.db
 # Build artifacts
 /build
 /dist
+/bin
 
 # Environment variables
 .env
@@ -52,3 +53,7 @@ yarn-error.log*
 # Test artifacts
 /test-results
 /coverage
+
+# VSCode extension
+*.vsix
+/vscode-extension/out

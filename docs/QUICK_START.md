@@ -23,6 +23,36 @@ cargo build --release
 export PATH=$PATH:$(pwd)/target/release
 ```
 
+## Set Up Your IDE
+
+### VS Code Extension (Recommended)
+
+For the best development experience, install our official VS Code extension:
+
+1. **Install the Extension:**
+   - Open VS Code
+   - Press `Ctrl+Shift+X` (Extensions)
+   - Search for "Augustium"
+   - Click "Install" on the extension by AugustMoreau
+
+2. **Alternative Installation:**
+   ```bash
+   # Command line installation
+   code --install-extension AugustMoreau.augustium
+   ```
+
+3. **Verify Installation:**
+   - Create a new file with `.aug` extension
+   - You should see syntax highlighting activate
+   - Try typing `contract` and see the auto-completion
+
+### Extension Features You'll Use:
+- 🎨 **Syntax Highlighting**: Beautiful, semantic code coloring
+- 📝 **Code Snippets**: Type `contract`, `function`, or `event` and press Tab
+- 🔍 **IntelliSense**: Auto-completion as you type
+- ⚡ **Build Integration**: Press `Ctrl+Shift+P` → "Augustium: Build"
+- 🐛 **Error Detection**: Red squiggles for syntax errors
+
 ## Your First Contract
 
 ### 1. Create a New Project

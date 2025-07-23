@@ -4,7 +4,7 @@
 //! of Augustium source code.
 
 use crate::error::SourceLocation;
-use std::collections::HashMap;
+
 
 /// A complete Augustium source file
 #[derive(Debug, Clone)]
@@ -337,12 +337,22 @@ pub enum Expression {
     Range(RangeExpression),
     Closure(ClosureExpression),
     Block(Block),
+    
+    // Machine Learning expressions
+    MLCreateModel(MLCreateModelExpression),
+    MLTrain(MLTrainExpression),
+    MLPredict(MLPredictExpression),
+    MLForward(MLForwardExpression),
+    MLBackward(MLBackwardExpression),
+    TensorOp(TensorOpExpression),
+    MatrixOp(MatrixOpExpression),
 }
 
 /// Literal values
 #[derive(Debug, Clone)]
 pub enum Literal {
     Integer(u64),
+    Float(f64),
     String(String),
     Boolean(bool),
     Address(String),
@@ -502,6 +512,8 @@ pub enum Type {
     I64,
     I128,
     I256,
+    F32,
+    F64,
     Bool,
     String,
     Address,
@@ -527,6 +539,31 @@ pub enum Type {
         parameters: Vec<Type>,
         return_type: Box<Type>,
     },
+    
+    // Machine Learning types
+    MLModel {
+        model_type: String,
+        input_shape: Vec<u64>,
+        output_shape: Vec<u64>,
+    },
+    MLDataset {
+        feature_types: Vec<Type>,
+        target_type: Box<Type>,
+    },
+    Tensor {
+        element_type: Box<Type>,
+        dimensions: Vec<u64>,
+    },
+    Matrix {
+        element_type: Box<Type>,
+        rows: u64,
+        cols: u64,
+    },
+    Vector {
+        element_type: Box<Type>,
+        size: Option<u64>,
+    },
+    MLMetrics,
 }
 
 /// Identifier
@@ -558,6 +595,91 @@ pub struct Attribute {
     pub name: String,
     pub arguments: Vec<String>,
     pub location: SourceLocation,
+}
+
+/// ML Create Model expression
+#[derive(Debug, Clone)]
+pub struct MLCreateModelExpression {
+    pub model_type: String,
+    pub config: Vec<(String, Expression)>,
+    pub location: SourceLocation,
+}
+
+/// ML Train expression
+#[derive(Debug, Clone)]
+pub struct MLTrainExpression {
+    pub model: Box<Expression>,
+    pub dataset: Box<Expression>,
+    pub epochs: Option<Box<Expression>>,
+    pub location: SourceLocation,
+}
+
+/// ML Predict expression
+#[derive(Debug, Clone)]
+pub struct MLPredictExpression {
+    pub model: Box<Expression>,
+    pub input: Box<Expression>,
+    pub location: SourceLocation,
+}
+
+/// ML Forward pass expression
+#[derive(Debug, Clone)]
+pub struct MLForwardExpression {
+    pub model: Box<Expression>,
+    pub input: Box<Expression>,
+    pub location: SourceLocation,
+}
+
+/// ML Backward pass expression
+#[derive(Debug, Clone)]
+pub struct MLBackwardExpression {
+    pub model: Box<Expression>,
+    pub gradients: Box<Expression>,
+    pub location: SourceLocation,
+}
+
+/// Tensor operation expression
+#[derive(Debug, Clone)]
+pub struct TensorOpExpression {
+    pub operation: TensorOperation,
+    pub operands: Vec<Expression>,
+    pub location: SourceLocation,
+}
+
+/// Matrix operation expression
+#[derive(Debug, Clone)]
+pub struct MatrixOpExpression {
+    pub operation: MatrixOperation,
+    pub operands: Vec<Expression>,
+    pub location: SourceLocation,
+}
+
+/// Tensor operations
+#[derive(Debug, Clone, PartialEq)]
+pub enum TensorOperation {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    MatMul,
+    Transpose,
+    Reshape,
+    Sum,
+    Mean,
+    Max,
+    Min,
+}
+
+/// Matrix operations
+#[derive(Debug, Clone, PartialEq)]
+pub enum MatrixOperation {
+    Add,
+    Subtract,
+    Multiply,
+    Transpose,
+    Inverse,
+    Determinant,
+    Eigenvalues,
 }
 
 // Utility implementations
@@ -596,7 +718,7 @@ impl Expression {
         
         match self {
             Expression::Literal(lit) => match lit {
-                Literal::Integer(_) | Literal::String(_) | Literal::Boolean(_) | Literal::Address(_) => {
+                Literal::Integer(_) | Literal::Float(_) | Literal::String(_) | Literal::Boolean(_) | Literal::Address(_) => {
                     // For now, return a dummy location for literals
                     // In a real implementation, literals would carry location info
                     DUMMY_LOCATION.get_or_init(|| SourceLocation::unknown())
@@ -615,6 +737,15 @@ impl Expression {
             Expression::Range(expr) => &expr.location,
             Expression::Closure(expr) => &expr.location,
             Expression::Block(block) => &block.location,
+            
+            // ML expressions
+            Expression::MLCreateModel(expr) => &expr.location,
+            Expression::MLTrain(expr) => &expr.location,
+            Expression::MLPredict(expr) => &expr.location,
+            Expression::MLForward(expr) => &expr.location,
+            Expression::MLBackward(expr) => &expr.location,
+            Expression::TensorOp(expr) => &expr.location,
+            Expression::MatrixOp(expr) => &expr.location,
         }
     }
 }
@@ -658,6 +789,8 @@ impl fmt::Display for Type {
             Type::I64 => write!(f, "i64"),
             Type::I128 => write!(f, "i128"),
             Type::I256 => write!(f, "i256"),
+            Type::F32 => write!(f, "f32"),
+            Type::F64 => write!(f, "f64"),
             Type::Bool => write!(f, "bool"),
             Type::String => write!(f, "string"),
             Type::Address => write!(f, "address"),
@@ -692,6 +825,28 @@ impl fmt::Display for Type {
                 }
                 write!(f, ") -> {}", return_type)
             }
+            
+            // ML types
+            Type::MLModel { model_type, input_shape, output_shape } => {
+                write!(f, "MLModel<{}, {:?} -> {:?}>", model_type, input_shape, output_shape)
+            }
+            Type::MLDataset { feature_types, target_type } => {
+                write!(f, "MLDataset<{:?}, {}>", feature_types, target_type)
+            }
+            Type::Tensor { element_type, dimensions } => {
+                write!(f, "Tensor<{}, {:?}>", element_type, dimensions)
+            }
+            Type::Matrix { element_type, rows, cols } => {
+                write!(f, "Matrix<{}, {}x{}>", element_type, rows, cols)
+            }
+            Type::Vector { element_type, size } => {
+                if let Some(size) = size {
+                    write!(f, "Vector<{}, {}>", element_type, size)
+                } else {
+                    write!(f, "Vector<{}>", element_type)
+                }
+            }
+            Type::MLMetrics => write!(f, "MLMetrics"),
         }
     }
 }

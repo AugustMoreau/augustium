@@ -34,6 +34,7 @@ impl Default for EvmConfig {
 
 /// EVM bytecode instruction
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum EvmInstruction {
     // Stack operations
     Push(Vec<u8>),
@@ -128,8 +129,10 @@ pub enum EvmInstruction {
 
 /// EVM bytecode representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EvmBytecode {
     pub instructions: Vec<EvmInstruction>,
+    #[allow(dead_code)]
     pub metadata: EvmMetadata,
 }
 
@@ -191,22 +194,21 @@ pub struct EvmStorageSlot {
 
 /// EVM compatibility translator
 pub struct EvmTranslator {
-    config: EvmConfig,
     function_selectors: HashMap<String, [u8; 4]>,
-    event_signatures: HashMap<String, [u8; 32]>,
 }
 
 impl EvmTranslator {
     /// Create a new EVM translator
-    pub fn new(config: EvmConfig) -> Self {
+    #[allow(dead_code)]
+    #[allow(dead_code)]
+    pub fn new(_config: EvmConfig) -> Self {
         Self {
-            config,
             function_selectors: HashMap::new(),
-            event_signatures: HashMap::new(),
         }
     }
     
     /// Translate Augustium AST to EVM bytecode
+    #[allow(dead_code)]
     pub fn translate_contract(&mut self, contract: &Contract) -> Result<EvmBytecode, CompilerError> {
         let mut instructions = Vec::new();
         let mut abi = Vec::new();
@@ -246,6 +248,7 @@ impl EvmTranslator {
     }
     
     /// Translate constructor to EVM bytecode
+    #[allow(dead_code)]
     fn translate_constructor(
         &mut self,
         constructor: &Function,
@@ -272,6 +275,7 @@ impl EvmTranslator {
     }
     
     /// Translate function to EVM bytecode
+    #[allow(dead_code)]
     fn translate_function(
         &mut self,
         function: &Function,
@@ -320,6 +324,7 @@ impl EvmTranslator {
     }
     
     /// Translate function body to EVM instructions
+    #[allow(dead_code)]
     fn translate_function_body(
         &mut self,
         body: &Block,
@@ -332,6 +337,7 @@ impl EvmTranslator {
     }
     
     /// Translate statement to EVM instructions
+    #[allow(dead_code)]
     fn translate_statement(
         &mut self,
         statement: &Statement,
@@ -390,6 +396,7 @@ impl EvmTranslator {
     }
     
     /// Translate expression to EVM instructions
+    #[allow(dead_code)]
     fn translate_expression(
         &mut self,
         expression: &Expression,
@@ -401,6 +408,10 @@ impl EvmTranslator {
                     Literal::Integer(value) => {
                         instructions.push(EvmInstruction::Push(value.to_be_bytes().to_vec()));
                     }
+                    Literal::Float(f) => {
+                        let int_value = *f as i64;
+                        instructions.push(EvmInstruction::Push(int_value.to_be_bytes().to_vec()));
+                    }
                     Literal::String(s) => {
                         instructions.push(EvmInstruction::Push(s.as_bytes().to_vec()));
                     }
@@ -408,11 +419,10 @@ impl EvmTranslator {
                         let v = if *b { 1u8 } else { 0u8 };
                         instructions.push(EvmInstruction::Push(vec![v]));
                     }
-                    Literal::Address(addr) => {
+                    Literal::Address(_addr) => {
                         // For now just push zero-padded 20-byte address placeholder
                         instructions.push(EvmInstruction::Push(vec![0u8; 20]));
                     }
-                    _ => {}
                 }
             }
             Expression::Identifier(_ident) => {
@@ -458,7 +468,6 @@ impl EvmTranslator {
                         instructions.push(EvmInstruction::Sub);
                     }
                     UnaryOperator::BitNot => instructions.push(EvmInstruction::Not),
-                    _ => {}
                 }
             }
             Expression::Call(call) => {
@@ -488,6 +497,7 @@ impl EvmTranslator {
     }
 
     /// Translate assignment target
+    #[allow(dead_code)]
     fn translate_assignment_target(
         &mut self,
         target: &Expression,
@@ -520,6 +530,7 @@ impl EvmTranslator {
     }
     
     /// Generate function selector (first 4 bytes of keccak256 hash)
+    #[allow(dead_code)]
     fn generate_function_selector(
         &self,
         name: &str,
@@ -542,6 +553,7 @@ impl EvmTranslator {
     }
     
     /// Convert Augustium type to Solidity type string
+    #[allow(dead_code)]
     fn augustium_type_to_solidity(&self, aug_type: &Type) -> Result<String, CompilerError> {
         match aug_type {
             Type::U8 => Ok("uint8".to_string()),
@@ -563,6 +575,7 @@ impl EvmTranslator {
     }
     
     /// Determine function state mutability
+    #[allow(dead_code)]
     fn determine_state_mutability(
         &self,
         _function: &Function,
@@ -572,12 +585,14 @@ impl EvmTranslator {
     }
     
     /// Calculate source hash
+    #[allow(dead_code)]
     fn calculate_source_hash(&self, _contract: &Contract) -> Result<String, CompilerError> {
         // Simplified hash calculation
         Ok("0x1234567890abcdef".to_string())
     }
     
     /// Simple hash function (replace with keccak256 in real implementation)
+    #[allow(dead_code)]
     fn simple_hash(&self, data: &[u8]) -> Vec<u8> {
         let mut hash = vec![0u8; 32];
         for (i, &byte) in data.iter().enumerate() {
@@ -587,6 +602,7 @@ impl EvmTranslator {
     }
     
     /// Convert EVM bytecode to hex string
+    #[allow(dead_code)]
     pub fn bytecode_to_hex(&self, bytecode: &EvmBytecode) -> String {
         let mut hex = String::new();
         for instruction in &bytecode.instructions {
@@ -596,6 +612,7 @@ impl EvmTranslator {
     }
     
     /// Convert single instruction to hex
+    #[allow(dead_code)]
     fn instruction_to_hex(&self, instruction: &EvmInstruction) -> String {
         match instruction {
             EvmInstruction::Push(data) => {
@@ -631,17 +648,20 @@ impl EvmTranslator {
 }
 
 /// EVM deployment helper
+#[allow(dead_code)]
 pub struct EvmDeployer {
     config: EvmConfig,
 }
 
 impl EvmDeployer {
     /// Create a new EVM deployer
+    #[allow(dead_code)]
     pub fn new(config: EvmConfig) -> Self {
         Self { config }
     }
     
     /// Generate deployment transaction
+    #[allow(dead_code)]
     pub fn generate_deployment_tx(
         &self,
         bytecode: &EvmBytecode,
@@ -668,6 +688,7 @@ impl EvmDeployer {
     }
     
     /// Convert instruction to bytes
+    #[allow(dead_code)]
     fn instruction_to_bytes(&self, instruction: &EvmInstruction) -> Vec<u8> {
         match instruction {
             EvmInstruction::Push(data) => {
@@ -715,6 +736,7 @@ pub mod utils {
     use super::*;
     
     /// Check if Augustium contract is EVM compatible
+    #[allow(dead_code)]
     pub fn is_evm_compatible(contract: &Contract) -> bool {
         // Check for EVM-incompatible features
         for function in &contract.functions {
@@ -726,6 +748,7 @@ pub mod utils {
     }
     
     /// Generate Solidity interface from Augustium contract
+    #[allow(dead_code)]
     pub fn generate_solidity_interface(contract: &Contract) -> Result<String, CompilerError> {
         let mut interface = format!("interface I{} {{\n", contract.name.name);
         
@@ -754,6 +777,7 @@ pub mod utils {
     }
     
     /// Simple type conversion helper
+    #[allow(dead_code)]
     fn augustium_type_to_solidity_simple(aug_type: &Type) -> String {
         match aug_type {
             Type::U8 => "uint8".to_string(),
@@ -778,7 +802,7 @@ pub mod utils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::*;
+
     use crate::error::SourceLocation;
     
     #[test]
@@ -819,7 +843,7 @@ mod tests {
     #[test]
     fn test_bytecode_generation() {
         let config = EvmConfig::default();
-        let mut translator = EvmTranslator::new(config);
+        let translator = EvmTranslator::new(config);
         
         let mut instructions = Vec::new();
         instructions.push(EvmInstruction::Push(vec![0x01]));

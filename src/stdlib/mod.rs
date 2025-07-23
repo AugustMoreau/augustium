@@ -12,6 +12,7 @@ pub mod defi;
 pub mod events;
 pub mod governance;
 pub mod math;
+pub mod ml;
 pub mod oracle;
 pub mod storage;
 pub mod string;
@@ -28,6 +29,7 @@ pub use crypto::*;
 pub use defi::*;
 pub use governance::*;
 pub use math::*;
+pub use ml::*;
 pub use oracle::*;
 pub use string::*;
 

@@ -1,13 +1,11 @@
 // Performance profiler for Augustium programs
 // Track gas usage, execution time, find bottlenecks
 
-use std::collections::{HashMap, BTreeMap};
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use std::fmt;
 
-use crate::avm::AVM;
 use crate::codegen::{Instruction, Value};
-use crate::error::{CompilerError, Result};
+use crate::error::Result;
 
 /// Profiler for Augustium Virtual Machine
 pub struct Profiler {
@@ -36,9 +34,11 @@ pub struct ExecutionStats {
     pub total_gas_used: u64,
     pub total_execution_time: Duration,
     pub function_calls: u64,
+    #[allow(dead_code)]
     pub contract_calls: u64,
     pub storage_reads: u64,
     pub storage_writes: u64,
+    #[allow(dead_code)]
     pub events_emitted: u64,
 }
 
@@ -62,8 +62,11 @@ pub struct FunctionStats {
 pub struct GasTracker {
     pub total_gas: u64,
     pub gas_by_operation: HashMap<String, u64>,
+    #[allow(dead_code)]
     pub gas_timeline: Vec<(Instant, u64)>,
+    #[allow(dead_code)]
     pub gas_limit: Option<u64>,
+    #[allow(dead_code)]
     pub gas_price: Option<u64>,
 }
 
@@ -80,16 +83,23 @@ pub struct MemoryTracker {
 /// Timeline event for execution tracing
 #[derive(Debug, Clone)]
 pub struct TimelineEvent {
+    #[allow(dead_code)]
     pub timestamp: Instant,
+    #[allow(dead_code)]
     pub event_type: EventType,
+    #[allow(dead_code)]
     pub instruction_pointer: usize,
+    #[allow(dead_code)]
     pub gas_used: u64,
+    #[allow(dead_code)]
     pub memory_used: usize,
+    #[allow(dead_code)]
     pub details: String,
 }
 
 /// Types of profiling events
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum EventType {
     InstructionExecuted,
     FunctionCall,
@@ -105,12 +115,19 @@ pub enum EventType {
 /// Profiler configuration
 #[derive(Debug, Clone)]
 pub struct ProfilerConfig {
+    #[allow(dead_code)]
     pub track_instructions: bool,
+    #[allow(dead_code)]
     pub track_functions: bool,
+    #[allow(dead_code)]
     pub track_gas: bool,
+    #[allow(dead_code)]
     pub track_memory: bool,
+    #[allow(dead_code)]
     pub track_timeline: bool,
+    #[allow(dead_code)]
     pub max_timeline_events: usize,
+    #[allow(dead_code)]
     pub sample_rate: f64, // 0.0 to 1.0
 }
 
@@ -131,6 +148,7 @@ pub struct GasAnalysis {
     pub total_gas: u64,
     pub gas_efficiency: f64,
     pub most_expensive_operations: Vec<(String, u64)>,
+    #[allow(dead_code)]
     pub gas_distribution: HashMap<String, f64>,
 }
 
@@ -140,6 +158,7 @@ pub struct MemoryAnalysis {
     pub peak_memory: usize,
     pub average_memory: f64,
     pub memory_efficiency: f64,
+    #[allow(dead_code)]
     pub allocation_patterns: Vec<(String, u64)>,
 }
 
@@ -155,16 +174,18 @@ pub struct Bottleneck {
 
 /// Types of performance bottlenecks
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum BottleneckType {
     HighGasUsage,
     SlowExecution,
     ExcessiveMemory,
     FrequentStorageAccess,
-    IneffientAlgorithm,
+    InefficientAlgorithm,
 }
 
 /// Severity levels
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(dead_code)]
 pub enum Severity {
     Low,
     Medium,
@@ -186,6 +207,7 @@ impl Default for ProfilerConfig {
     }
 }
 
+#[allow(dead_code)]
 impl Profiler {
     /// Create a new profiler with default configuration
     pub fn new() -> Self {
@@ -578,7 +600,8 @@ impl Profiler {
 }
 
 /// Start profiling a program
-pub fn profile_execution(bytecode: &[u8]) -> Result<ProfilingReport> {
+#[allow(dead_code)]
+pub fn profile_execution(_bytecode: &[u8]) -> Result<ProfilingReport> {
     let mut profiler = Profiler::new();
     profiler.start();
     

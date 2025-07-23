@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced debugging features
 - Performance optimizations
 
+## [1.0.1] - 2025-01-27
+
+### Added
+- **VS Code Extension v1.0.4**
+  - Rich syntax highlighting with semantic colors
+  - Smart code snippets for contracts, functions, and DeFi patterns
+  - IntelliSense with auto-completion and error detection
+  - Build integration for compiling directly from VS Code
+  - Hover documentation and inline help
+  - Published to both VS Code Marketplace and Open VSX Registry
+
+- **Enhanced Documentation**
+  - Comprehensive VS Code extension installation guide in README.md
+  - Detailed IDE setup instructions in INSTALL.md
+  - Updated QUICK_START.md with extension setup steps
+  - Multiple installation methods documented
+
+### Fixed
+- **Compiler Warnings Resolution**
+  - Removed unnecessary `mut` keywords in test functions
+  - Prefixed unused variables with underscores
+  - Added `#[allow(dead_code)]` attributes to unused methods
+  - Fixed field name mismatch in PackageManager constructor
+  - Corrected spelling errors throughout codebase
+  - Achieved zero compiler warnings for cleaner builds
+
+### Improved
+- **Development Experience**
+  - GitHub workflow for automated VS Code extension publishing
+  - Enhanced build stability and reliability
+  - Better error messages and diagnostics
+  - Improved code quality and maintainability
+
 ## [1.0.0] - 2025-07-20
 
 ### Added

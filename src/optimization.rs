@@ -28,12 +28,14 @@ impl From<OptimizationError> for crate::error::CompilerError {
 /// Trait for optimization passes
 pub trait OptimizationPass {
     fn run(&self, ast: &mut SourceFile) -> Result<()>;
+    #[allow(dead_code)]
     fn name(&self) -> &str;
 }
 
 /// Bytecode optimization trait
 pub trait BytecodeOptimizationPass {
     fn run(&self, bytecode: &mut Bytecode) -> Result<()>;
+    #[allow(dead_code)]
     fn name(&self) -> &str;
 }
 
@@ -315,6 +317,27 @@ impl ConstantFolding {
                 };
                 Ok(result.map(Literal::Integer))
             }
+            (Literal::Float(a), Literal::Float(b)) => {
+                let result = match op {
+                    BinaryOperator::Add => Some(*a + *b),
+                    BinaryOperator::Subtract => Some(*a - *b),
+                    BinaryOperator::Multiply => Some(*a * *b),
+                    BinaryOperator::Divide => {
+                        if *b == 0.0 {
+                            return Ok(None); // Don't fold division by zero
+                        }
+                        Some(*a / *b)
+                    }
+                    BinaryOperator::Equal => return Ok(Some(Literal::Boolean(a == b))),
+                    BinaryOperator::NotEqual => return Ok(Some(Literal::Boolean(a != b))),
+                    BinaryOperator::Less => return Ok(Some(Literal::Boolean(a < b))),
+                    BinaryOperator::LessEqual => return Ok(Some(Literal::Boolean(a <= b))),
+                    BinaryOperator::Greater => return Ok(Some(Literal::Boolean(a > b))),
+                    BinaryOperator::GreaterEqual => return Ok(Some(Literal::Boolean(a >= b))),
+                    _ => None,
+                };
+                Ok(result.map(Literal::Float))
+            }
             (Literal::Boolean(a), Literal::Boolean(b)) => {
                 let result = match op {
                     BinaryOperator::And => *a && *b,
@@ -333,6 +356,9 @@ impl ConstantFolding {
         match (op, operand) {
             (UnaryOperator::Minus, Literal::Integer(n)) => {
                 Ok(n.checked_neg().map(Literal::Integer))
+            }
+            (UnaryOperator::Minus, Literal::Float(f)) => {
+                Ok(Some(Literal::Float(-f)))
             }
             (UnaryOperator::Not, Literal::Boolean(b)) => {
                 Ok(Some(Literal::Boolean(!b)))
@@ -552,7 +578,7 @@ impl RedundantInstructionElimination {
                 // Remove unreachable code after Return
                 Instruction::Return => {
                     // Remove instructions until next label or end
-                    let mut j = i + 1;
+                    let j = i + 1;
                     while j < instructions.len() {
                         match &instructions[j] {
                             Instruction::Jump(_) | Instruction::JumpIf(_) | Instruction::JumpIfNot(_) => break,

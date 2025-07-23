@@ -116,7 +116,7 @@ impl AccessControl {
     pub fn has_permission(&self, address: &Address, permission: &Permission) -> bool {
         if let Some(entry) = self.access_list.get(address) {
             // Check if access has expired
-            if let Some(expires_at) = &entry.expires_at {
+            if let Some(_expires_at) = &entry.expires_at {
                 // In a real implementation, you'd compare with current block number
                 // For now, we'll assume it's valid
             }
@@ -467,7 +467,7 @@ mod tests {
     fn test_access_control_basic() {
         let owner = Address::new([1u8; 20]);
         let user = Address::new([2u8; 20]);
-        let mut ac = AccessControl::new(owner);
+        let ac = AccessControl::new(owner);
 
         assert!(ac.is_owner(&owner));
         assert!(!ac.is_owner(&user));

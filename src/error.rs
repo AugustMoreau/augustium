@@ -41,6 +41,7 @@ pub struct LexError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum LexErrorKind {
     UnexpectedCharacter(char),
     UnterminatedString,
@@ -61,6 +62,7 @@ pub struct ParseError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ParseErrorKind {
     UnexpectedToken,
     UnexpectedEndOfFile,
@@ -81,6 +83,7 @@ pub struct SemanticError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum SemanticErrorKind {
     /// Type checking errors
     TypeMismatch { expected: String, found: String },
@@ -129,6 +132,7 @@ pub struct CodegenError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum CodegenErrorKind {
     UnsupportedFeature(String),
     OptimizationFailed,
@@ -151,6 +155,7 @@ pub struct VmError {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum VmErrorKind {
     /// Execution errors
     StackUnderflow,
@@ -207,6 +212,9 @@ pub enum VmErrorKind {
     ExcessiveDeviation,
     StaleData,
     InsufficientData,
+    
+    /// ML-specific errors
+    InvalidOperation,
 }
 
 /// Source code location for error reporting
@@ -430,6 +438,7 @@ impl fmt::Display for VmErrorKind {
             VmErrorKind::InvalidData => write!(f, "Invalid data"),
             VmErrorKind::ExcessiveDeviation => write!(f, "Excessive deviation"),
             VmErrorKind::StaleData => write!(f, "Stale data"),
+            VmErrorKind::InvalidOperation => write!(f, "Invalid operation"),
         }
     }
 }
@@ -491,11 +500,13 @@ impl ParseError {
         }
     }
     
+    #[allow(dead_code)]
     pub fn with_expected(mut self, expected: String) -> Self {
         self.expected = Some(expected);
         self
     }
     
+    #[allow(dead_code)]
     pub fn with_found(mut self, found: String) -> Self {
         self.found = Some(found);
         self

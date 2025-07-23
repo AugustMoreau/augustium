@@ -1,0 +1,19 @@
+# GitHub Linguist configuration for Augustium
+# This file defines the Augustium programming language for GitHub's language detection
+
+Augustium:
+  type: programming
+  color: "#ff6b35"
+  extensions:
+    - ".aug"
+  tm_scope: source.augustium
+  ace_mode: text
+  language_id: 1001
+  aliases:
+    - augustium
+    - aug
+  interpreters:
+    - augustium
+    - august
+  filenames:
+    - "*.aug"

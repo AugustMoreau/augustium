@@ -1,0 +1,119 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Augustium",
+    "patterns": [
+        {"include": "#comments"},
+        {"include": "#keywords"},
+        {"include": "#types"},
+        {"include": "#functions"},
+        {"include": "#numbers"},
+        {"include": "#strings"},
+        {"include": "#operators"},
+        {"include": "#identifiers"}
+    ],
+    "repository": {
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.augustium",
+                    "match": "\\b(contract|fn|let|mut|const|if|else|for|while|loop|break|continue|return|match|impl|trait|struct|enum|mod|use|pub|self|super|crate)\\b"
+                },
+                {
+                    "name": "keyword.other.augustium",
+                    "match": "\\b(require|assert|assert_eq|test|storage|event|mapping)\\b"
+                },
+                {
+                    "name": "storage.modifier.augustium",
+                    "match": "\\b(public|private|internal|external|view|pure|payable)\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "name": "storage.type.augustium",
+                    "match": "\\b(u8|u16|u32|u64|u128|u256|i8|i16|i32|i64|i128|i256|bool|address|string|bytes|bytes32)\\b"
+                },
+                {
+                    "name": "entity.name.type.augustium",
+                    "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.augustium",
+                    "match": "\\b[a-z_][a-zA-Z0-9_]*(?=\\s*\\()"
+                },
+                {
+                    "name": "support.function.augustium",
+                    "match": "\\b(transfer|approve|balance_of|allowance|mint|burn|new|from_hex|set_caller|caller)\\b"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.decimal.augustium",
+                    "match": "\\b\\d+(\\.\\d+)?\\b"
+                },
+                {
+                    "name": "constant.numeric.hex.augustium",
+                    "match": "\\b0x[0-9a-fA-F]+\\b"
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double.augustium",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [{
+                "name": "constant.character.escape.augustium",
+                "match": "\\\\."
+            }]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.arithmetic.augustium",
+                    "match": "[+\\-*/%]"
+                },
+                {
+                    "name": "keyword.operator.comparison.augustium",
+                    "match": "(==|!=|<|>|<=|>=)"
+                },
+                {
+                    "name": "keyword.operator.logical.augustium",
+                    "match": "(&&|\\|\\||!)"
+                },
+                {
+                    "name": "keyword.operator.assignment.augustium",
+                    "match": "(=|\\+=|\\-=|\\*=|/=|%=)"
+                }
+            ]
+        },
+        "identifiers": {
+            "patterns": [
+                {
+                    "name": "variable.other.augustium",
+                    "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        },
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.augustium",
+                    "match": "//.*$"
+                },
+                {
+                    "name": "comment.block.augustium",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.augustium"
+}

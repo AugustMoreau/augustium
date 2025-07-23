@@ -9,6 +9,7 @@ pub mod codegen;
 pub mod optimization;
 pub mod avm;
 pub mod error;
+pub mod lsp;
 pub mod stdlib;
 pub mod package_manager;
 pub mod evm_compat;

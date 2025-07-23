@@ -1,0 +1,20 @@
+{
+    "Contract": {
+        "prefix": "contract",
+        "body": [
+            "contract ${1:ContractName} {",
+            "    $0",
+            "}"
+        ],
+        "description": "Create a new contract"
+    },
+    "Function": {
+        "prefix": "fn",
+        "body": [
+            "${1:public} fn ${2:functionName}(${3:params}) -> ${4:returnType} {",
+            "    $0",
+            "}"
+        ],
+        "description": "Create a new function"
+    }
+}

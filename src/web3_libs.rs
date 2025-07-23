@@ -38,6 +38,7 @@ impl Web3Framework {
     }
     
     /// Get the programming language
+    #[allow(dead_code)]
     pub fn language(&self) -> &str {
         match self {
             Web3Framework::EthersJs | Web3Framework::Web3Js | Web3Framework::Wagmi | Web3Framework::Viem => "TypeScript/JavaScript",
@@ -153,6 +154,7 @@ pub struct TestingConfig {
 pub struct Web3File {
     pub path: PathBuf,
     pub content: String,
+    #[allow(dead_code)]
     pub file_type: Web3FileType,
 }
 
@@ -164,6 +166,7 @@ pub enum Web3FileType {
     DeploymentScript,
     TestFile,
     Configuration,
+    #[allow(dead_code)]
     Documentation,
     Package,
 }
@@ -1177,6 +1180,7 @@ public class {} extends Contract {{
     }
     
     /// Convert Solidity type to TypeScript type
+    #[allow(dead_code)]
     fn solidity_to_typescript_type(&self, solidity_type: &str) -> String {
         match solidity_type {
             "uint256" | "uint" => "BigNumber".to_string(),
@@ -1211,6 +1215,7 @@ public class {} extends Contract {{
     }
     
     /// Get generated files
+    #[allow(dead_code)]
     pub fn get_files(&self) -> &[Web3File] {
         &self.files
     }
@@ -1358,10 +1363,12 @@ type {} struct {{
 }
 
 /// Web3 integration factory
+#[allow(dead_code)]
 pub struct Web3Factory;
 
 impl Web3Factory {
     /// Create a default Web3 configuration for a framework
+    #[allow(dead_code)]
     pub fn create_config(framework: Web3Framework) -> Web3Config {
         let mut network_configs = HashMap::new();
         
@@ -1423,6 +1430,7 @@ impl Web3Factory {
     }
     
     /// Generate Web3 integration for multiple frameworks
+    #[allow(dead_code)]
     pub fn generate_multi_framework(
         contracts: Vec<Contract>,
         frameworks: Vec<Web3Framework>,
@@ -1446,6 +1454,7 @@ pub mod utils {
     use super::*;
     
     /// Validate Web3 configuration
+    #[allow(dead_code)]
     pub fn validate_config(config: &Web3Config) -> Result<(), CompilerError> {
         // Validate network configurations
         for (name, network) in &config.network_configs {
@@ -1475,6 +1484,7 @@ pub mod utils {
     }
     
     /// Get recommended features for a framework
+    #[allow(dead_code)]
     pub fn get_recommended_features(framework: &Web3Framework) -> Vec<Web3Feature> {
         match framework {
             Web3Framework::EthersJs | Web3Framework::Wagmi | Web3Framework::Viem => vec![
@@ -1506,6 +1516,7 @@ pub mod utils {
     }
     
     /// Generate documentation for Web3 integration
+    #[allow(dead_code)]
     pub fn generate_documentation(config: &Web3Config) -> String {
         format!(r#"# {} Integration
 

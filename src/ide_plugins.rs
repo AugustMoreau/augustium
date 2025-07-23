@@ -39,6 +39,7 @@ impl IdeType {
     }
     
     /// Get the configuration directory for the IDE
+    #[allow(dead_code)]
     pub fn config_dir(&self) -> &str {
         match self {
             IdeType::VSCode => ".vscode",
@@ -88,6 +89,7 @@ pub enum PluginFeature {
 pub struct PluginFile {
     pub path: PathBuf,
     pub content: String,
+    #[allow(dead_code)]
     pub file_type: PluginFileType,
 }
 
@@ -99,7 +101,9 @@ pub enum PluginFileType {
     Snippets,
     Configuration,
     Script,
+    #[allow(dead_code)]
     Theme,
+    #[allow(dead_code)]
     Icon,
     Documentation,
 }
@@ -1337,7 +1341,8 @@ pub struct PluginFactory;
 
 impl PluginFactory {
     /// Create a VS Code plugin configuration
-    pub fn create_vscode_config() -> PluginConfig {
+    #[allow(dead_code)]
+pub fn create_vscode_config() -> PluginConfig {
         PluginConfig {
             ide_type: IdeType::VSCode,
             plugin_name: "augustium".to_string(),
@@ -1361,7 +1366,8 @@ impl PluginFactory {
     }
     
     /// Create an IntelliJ plugin configuration
-    pub fn create_intellij_config() -> PluginConfig {
+    #[allow(dead_code)]
+pub fn create_intellij_config() -> PluginConfig {
         PluginConfig {
             ide_type: IdeType::IntelliJ,
             plugin_name: "augustium-intellij".to_string(),
@@ -1381,7 +1387,8 @@ impl PluginFactory {
     }
     
     /// Create a Vim plugin configuration
-    pub fn create_vim_config() -> PluginConfig {
+    #[allow(dead_code)]
+pub fn create_vim_config() -> PluginConfig {
         PluginConfig {
             ide_type: IdeType::Vim,
             plugin_name: "vim-augustium".to_string(),
@@ -1399,7 +1406,8 @@ impl PluginFactory {
     }
     
     /// Generate plugins for all supported IDEs
-    pub fn generate_all_plugins(output_dir: &Path) -> Result<(), CompilerError> {
+    #[allow(dead_code)]
+pub fn generate_all_plugins(output_dir: &Path) -> Result<(), CompilerError> {
         let configs = vec![
             Self::create_vscode_config(),
             Self::create_intellij_config(),

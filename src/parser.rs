@@ -25,6 +25,7 @@ impl Parser {
     }
     
     /// Get all collected errors
+    #[allow(dead_code)]
     pub fn get_errors(&self) -> &Vec<ParseError> {
         &self.errors
     }
@@ -145,7 +146,7 @@ impl Parser {
         let mut fields = Vec::new();
         let mut functions = Vec::new();
         let mut events = Vec::new();
-        let mut modifiers = Vec::new();
+        let modifiers = Vec::new();
         
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             // Skip newlines
@@ -735,6 +736,174 @@ impl Parser {
             TokenType::String => { self.advance(); Ok(Type::String) }
             TokenType::Address => { self.advance(); Ok(Type::Address) }
             TokenType::Bytes => { self.advance(); Ok(Type::Bytes) }
+            
+            // ML Types
+            TokenType::MLModel => {
+                self.advance();
+                self.consume(&TokenType::Less, "Expected '<' after MLModel")?;
+                let model_type = match &self.peek().token_type {
+                    TokenType::StringLiteral(s) => {
+                        let model_type = s.clone();
+                        self.advance();
+                        model_type
+                    }
+                    TokenType::Identifier(s) => {
+                        let model_type = s.clone();
+                        self.advance();
+                        model_type
+                    }
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected model type string".to_string(),
+                    ).into()),
+                };
+                self.consume(&TokenType::Comma, "Expected ',' after model type")?;
+                
+                // Parse input shape
+                let mut input_shape = Vec::new();
+                self.consume(&TokenType::LeftBracket, "Expected '[' for input shape")?;
+                if !self.check(&TokenType::RightBracket) {
+                    loop {
+                        if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                            input_shape.push(*n);
+                            self.advance();
+                        } else {
+                            return Err(ParseError::new(
+                                ParseErrorKind::UnexpectedToken,
+                                self.current_location(),
+                                "Expected integer in shape".to_string(),
+                            ).into());
+                        }
+                        if !self.match_token(&TokenType::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.consume(&TokenType::RightBracket, "Expected ']' after input shape")?;
+                
+                self.consume(&TokenType::Arrow, "Expected '->' between input and output shapes")?;
+                
+                // Parse output shape
+                let mut output_shape = Vec::new();
+                self.consume(&TokenType::LeftBracket, "Expected '[' for output shape")?;
+                if !self.check(&TokenType::RightBracket) {
+                    loop {
+                        if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                            output_shape.push(*n);
+                            self.advance();
+                        } else {
+                            return Err(ParseError::new(
+                                ParseErrorKind::UnexpectedToken,
+                                self.current_location(),
+                                "Expected integer in shape".to_string(),
+                            ).into());
+                        }
+                        if !self.match_token(&TokenType::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.consume(&TokenType::RightBracket, "Expected ']' after output shape")?;
+                self.consume(&TokenType::Greater, "Expected '>' after MLModel type")?;
+                
+                Ok(Type::MLModel { model_type, input_shape, output_shape })
+            }
+            TokenType::Tensor => {
+                self.advance();
+                self.consume(&TokenType::Less, "Expected '<' after Tensor")?;
+                let element_type = Box::new(self.parse_type()?);
+                self.consume(&TokenType::Comma, "Expected ',' after element type")?;
+                
+                let mut dimensions = Vec::new();
+                self.consume(&TokenType::LeftBracket, "Expected '[' for dimensions")?;
+                if !self.check(&TokenType::RightBracket) {
+                    loop {
+                        if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                            dimensions.push(*n);
+                            self.advance();
+                        } else {
+                            return Err(ParseError::new(
+                                ParseErrorKind::UnexpectedToken,
+                                self.current_location(),
+                                "Expected integer in dimensions".to_string(),
+                            ).into());
+                        }
+                        if !self.match_token(&TokenType::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.consume(&TokenType::RightBracket, "Expected ']' after dimensions")?;
+                self.consume(&TokenType::Greater, "Expected '>' after Tensor type")?;
+                
+                Ok(Type::Tensor { element_type, dimensions })
+            }
+            TokenType::Matrix => {
+                self.advance();
+                self.consume(&TokenType::Less, "Expected '<' after Matrix")?;
+                let element_type = Box::new(self.parse_type()?);
+                self.consume(&TokenType::Comma, "Expected ',' after element type")?;
+                
+                let rows = if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                    let rows = *n;
+                    self.advance();
+                    rows
+                } else {
+                    return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected integer for matrix rows".to_string(),
+                    ).into());
+                };
+                
+                self.consume(&TokenType::Star, "Expected '*' between rows and cols")?;
+                
+                let cols = if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                    let cols = *n;
+                    self.advance();
+                    cols
+                } else {
+                    return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected integer for matrix cols".to_string(),
+                    ).into());
+                };
+                
+                self.consume(&TokenType::Greater, "Expected '>' after Matrix type")?;
+                
+                Ok(Type::Matrix { element_type, rows, cols })
+            }
+            TokenType::Vector => {
+                self.advance();
+                self.consume(&TokenType::Less, "Expected '<' after Vector")?;
+                let element_type = Box::new(self.parse_type()?);
+                
+                let size = if self.match_token(&TokenType::Comma) {
+                    if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
+                        let size = *n;
+                        self.advance();
+                        Some(size)
+                    } else {
+                        return Err(ParseError::new(
+                            ParseErrorKind::UnexpectedToken,
+                            self.current_location(),
+                            "Expected integer for vector size".to_string(),
+                        ).into());
+                    }
+                } else {
+                    None
+                };
+                
+                self.consume(&TokenType::Greater, "Expected '>' after Vector type")?;
+                
+                Ok(Type::Vector { element_type, size })
+            }
+            TokenType::Metrics => {
+                self.advance();
+                Ok(Type::MLMetrics)
+            }
             TokenType::LeftBracket => {
                 self.advance(); // consume '['
                 let element_type = Box::new(self.parse_type()?);
@@ -1492,6 +1661,11 @@ impl Parser {
                 self.advance();
                 Ok(Expression::Literal(Literal::Integer(n)))
             }
+            TokenType::FloatLiteral(f) => {
+                let f = *f;
+                self.advance();
+                Ok(Expression::Literal(Literal::Float(f)))
+            }
             TokenType::StringLiteral(s) => {
                 let s = s.clone();
                 self.advance();
@@ -1572,6 +1746,65 @@ impl Parser {
             }
             TokenType::LeftBrace => {
                 Ok(Expression::Block(self.parse_block()?))
+            }
+            
+            // ML Expressions
+            TokenType::MLModel => {
+                self.parse_ml_create_model()
+            }
+            TokenType::MLTrain => {
+                self.parse_ml_train()
+            }
+            TokenType::MLPredict => {
+                self.parse_ml_predict()
+            }
+            TokenType::MLForward => {
+                self.parse_ml_forward()
+            }
+            TokenType::MLBackward => {
+                self.parse_ml_backward()
+            }
+            TokenType::MLConv2D => {
+                self.parse_ml_conv2d()
+            }
+            TokenType::MLAttention => {
+                self.parse_ml_attention()
+            }
+            TokenType::MLClone => {
+                self.parse_ml_clone()
+            }
+            TokenType::MLQuantize => {
+                self.parse_ml_quantize()
+            }
+            TokenType::MLEvaluate => {
+                self.parse_ml_evaluate()
+            }
+            TokenType::MLExport => {
+                self.parse_ml_export()
+            }
+            TokenType::MLSync => {
+                self.parse_ml_sync()
+            }
+            TokenType::MLAugment => {
+                self.parse_ml_augment()
+            }
+            TokenType::MLLoadDataset => {
+                self.parse_ml_load_dataset()
+            }
+            TokenType::MLConfusionMatrix => {
+                self.parse_ml_confusion_matrix()
+            }
+            TokenType::CreateTensor => {
+                self.parse_create_tensor()
+            }
+            TokenType::CreateVector => {
+                self.parse_create_vector()
+            }
+            TokenType::CreateMatrix => {
+                self.parse_create_matrix()
+            }
+            TokenType::Tensor | TokenType::Matrix | TokenType::Vector => {
+                self.parse_tensor_matrix_ops()
             }
             _ => {
                 let token = self.peek();
@@ -1897,6 +2130,7 @@ impl Parser {
     }
     
     /// Consume a token with graceful error recovery
+    #[allow(dead_code)]
     fn consume_with_recovery(&mut self, token_type: &TokenType, message: &str) -> Option<&Token> {
         if self.check(token_type) {
             Some(self.advance())
@@ -1916,11 +2150,13 @@ impl Parser {
     }
     
     /// Create a checkpoint for backtracking
+    #[allow(dead_code)]
     fn checkpoint(&self) -> usize {
         self.current
     }
     
     /// Restore to a checkpoint
+    #[allow(dead_code)]
     fn restore(&mut self, checkpoint: usize) {
         self.current = checkpoint;
     }
@@ -1928,6 +2164,516 @@ impl Parser {
     /// Get the current source location
     fn current_location(&self) -> SourceLocation {
         self.peek().location.clone()
+    }
+    
+    /// Parse ML create model expression
+    fn parse_ml_create_model(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLModel, "Expected 'ml_model'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_model")?;
+        
+        let model_type = match &self.peek().token_type {
+            TokenType::StringLiteral(s) => {
+                let model_type = s.clone();
+                self.advance();
+                model_type
+            }
+            TokenType::Identifier(s) => {
+                let model_type = s.clone();
+                self.advance();
+                model_type
+            }
+            _ => return Err(ParseError::new(
+                ParseErrorKind::UnexpectedToken,
+                self.current_location(),
+                "Expected model type".to_string(),
+            ).into()),
+        };
+        
+        let mut config = Vec::new();
+        if self.match_token(&TokenType::Comma) {
+            self.consume(&TokenType::LeftBrace, "Expected '{' for model config")?;
+            while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+                let key = match &self.peek().token_type {
+                    TokenType::Identifier(s) => {
+                        let key = s.clone();
+                        self.advance();
+                        key
+                    }
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected config key".to_string(),
+                    ).into()),
+                };
+                self.consume(&TokenType::Colon, "Expected ':' after config key")?;
+                let value = self.parse_expression()?;
+                config.push((key, value));
+                
+                if !self.match_token(&TokenType::Comma) {
+                    break;
+                }
+            }
+            self.consume(&TokenType::RightBrace, "Expected '}' after model config")?;
+        }
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_model")?;
+        
+        Ok(Expression::MLCreateModel(MLCreateModelExpression {
+            model_type,
+            config,
+            location: start_location,
+        }))
+    }
+    
+    /// Parse ML train expression
+    fn parse_ml_train(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLTrain, "Expected 'ml_train'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_train")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let dataset = Box::new(self.parse_expression()?);
+        
+        let epochs = if self.match_token(&TokenType::Comma) {
+            Some(Box::new(self.parse_expression()?))
+        } else {
+            None
+        };
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_train")?;
+        
+        Ok(Expression::MLTrain(MLTrainExpression {
+            model,
+            dataset,
+            epochs,
+            location: start_location,
+        }))
+    }
+    
+    /// Parse ML predict expression
+    fn parse_ml_predict(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLPredict, "Expected 'ml_predict'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_predict")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let input = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_predict")?;
+        
+        Ok(Expression::MLPredict(MLPredictExpression {
+            model,
+            input,
+            location: start_location,
+        }))
+    }
+    
+    /// Parse ML forward expression
+    fn parse_ml_forward(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLForward, "Expected 'ml_forward'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_forward")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let input = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_forward")?;
+        
+        Ok(Expression::MLForward(MLForwardExpression {
+            model,
+            input,
+            location: start_location,
+        }))
+    }
+    
+    /// Parse ML backward expression
+    fn parse_ml_backward(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLBackward, "Expected 'ml_backward'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_backward")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let gradients = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_backward")?;
+        
+        Ok(Expression::MLBackward(MLBackwardExpression {
+            model,
+            gradients,
+            location: start_location,
+        }))
+    }
+    
+    /// Parse tensor/matrix operations
+    fn parse_tensor_matrix_ops(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        
+        match &self.peek().token_type {
+            TokenType::Tensor => {
+                self.advance();
+                self.consume(&TokenType::DoubleColon, "Expected '::' after tensor")?;
+                
+                let operation_name = match &self.peek().token_type {
+                    TokenType::Identifier(name) => {
+                        let op_name = name.clone();
+                        self.advance();
+                        op_name
+                    }
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected tensor operation name".to_string(),
+                    ).into()),
+                };
+                
+                let operation = match operation_name.as_str() {
+                    "add" => TensorOperation::Add,
+                    "sub" => TensorOperation::Subtract,
+                    "mul" => TensorOperation::Multiply,
+                    "div" => TensorOperation::Divide,
+                    "matmul" => TensorOperation::MatMul,
+                    "transpose" => TensorOperation::Transpose,
+                    "reshape" => TensorOperation::Reshape,
+                    "sum" => TensorOperation::Sum,
+                    "mean" => TensorOperation::Mean,
+                    "max" => TensorOperation::Max,
+                    "min" => TensorOperation::Min,
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        format!("Unknown tensor operation: {}", operation_name),
+                    ).into()),
+                };
+                
+                self.consume(&TokenType::LeftParen, "Expected '(' after tensor operation")?;
+                
+                let mut operands = Vec::new();
+                if !self.check(&TokenType::RightParen) {
+                    loop {
+                        operands.push(self.parse_expression()?);
+                        if !self.match_token(&TokenType::Comma) {
+                            break;
+                        }
+                    }
+                }
+                
+                self.consume(&TokenType::RightParen, "Expected ')' after tensor operands")?;
+                
+                Ok(Expression::TensorOp(TensorOpExpression {
+                    operation,
+                    operands,
+                    location: start_location,
+                }))
+            }
+            TokenType::Matrix => {
+                self.advance();
+                self.consume(&TokenType::DoubleColon, "Expected '::' after matrix")?;
+                
+                let operation_name = match &self.peek().token_type {
+                    TokenType::Identifier(name) => {
+                        let op_name = name.clone();
+                        self.advance();
+                        op_name
+                    }
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        "Expected matrix operation name".to_string(),
+                    ).into()),
+                };
+                
+                let operation = match operation_name.as_str() {
+                    "add" => MatrixOperation::Add,
+                    "sub" => MatrixOperation::Subtract,
+                    "mul" => MatrixOperation::Multiply,
+                    "transpose" => MatrixOperation::Transpose,
+                    "inverse" => MatrixOperation::Inverse,
+                    "det" => MatrixOperation::Determinant,
+                    "eigenvalues" => MatrixOperation::Eigenvalues,
+                    _ => return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        self.current_location(),
+                        format!("Unknown matrix operation: {}", operation_name),
+                    ).into()),
+                };
+                
+                self.consume(&TokenType::LeftParen, "Expected '(' after matrix operation")?;
+                
+                let mut operands = Vec::new();
+                if !self.check(&TokenType::RightParen) {
+                    loop {
+                        operands.push(self.parse_expression()?);
+                        if !self.match_token(&TokenType::Comma) {
+                            break;
+                        }
+                    }
+                }
+                
+                self.consume(&TokenType::RightParen, "Expected ')' after matrix operands")?;
+                
+                Ok(Expression::MatrixOp(MatrixOpExpression {
+                    operation,
+                    operands,
+                    location: start_location,
+                }))
+            }
+            _ => {
+                let token = self.peek();
+                Err(ParseError::new(
+                    ParseErrorKind::UnexpectedToken,
+                    token.location.clone(),
+                    format!("Unexpected token in tensor/matrix operation: {:?}", token.token_type),
+                ).into())
+            }
+        }
+    }
+
+    /// Parse ML conv2d expression
+    fn parse_ml_conv2d(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLConv2D, "Expected 'ml_conv2d'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_conv2d")?;
+        
+        let input = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after input")?;
+        let kernel = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_conv2d")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_conv2d".to_string(), start_location.clone()))),
+            arguments: vec![*input, *kernel],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML attention expression
+    fn parse_ml_attention(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLAttention, "Expected 'ml_attention'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_attention")?;
+        
+        let query = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after query")?;
+        let key = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after key")?;
+        let value = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_attention")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_attention".to_string(), start_location.clone()))),
+            arguments: vec![*query, *key, *value],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML clone expression
+    fn parse_ml_clone(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLClone, "Expected 'ml_clone'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_clone")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_clone")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_clone".to_string(), start_location.clone()))),
+            arguments: vec![*model],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML quantize expression
+    fn parse_ml_quantize(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLQuantize, "Expected 'ml_quantize'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_quantize")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let bits = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_quantize")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_quantize".to_string(), start_location.clone()))),
+            arguments: vec![*model, *bits],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML evaluate expression
+    fn parse_ml_evaluate(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLEvaluate, "Expected 'ml_evaluate'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_evaluate")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let test_data = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_evaluate")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_evaluate".to_string(), start_location.clone()))),
+            arguments: vec![*model, *test_data],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML export expression
+    fn parse_ml_export(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLExport, "Expected 'ml_export'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_export")?;
+        
+        let model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after model")?;
+        let format = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_export")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_export".to_string(), start_location.clone()))),
+            arguments: vec![*model, *format],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML sync expression
+    fn parse_ml_sync(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLSync, "Expected 'ml_sync'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_sync")?;
+        
+        let local_model = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after local_model")?;
+        let remote_model = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_sync")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_sync".to_string(), start_location.clone()))),
+            arguments: vec![*local_model, *remote_model],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML augment expression
+    fn parse_ml_augment(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLAugment, "Expected 'ml_augment'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_augment")?;
+        
+        let dataset = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after dataset")?;
+        let augmentation_type = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_augment")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_augment".to_string(), start_location.clone()))),
+            arguments: vec![*dataset, *augmentation_type],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML load dataset expression
+    fn parse_ml_load_dataset(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLLoadDataset, "Expected 'ml_load_dataset'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_load_dataset")?;
+        
+        let path = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after path")?;
+        let format = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_load_dataset")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_load_dataset".to_string(), start_location.clone()))),
+            arguments: vec![*path, *format],
+            location: start_location,
+        }))
+    }
+
+    /// Parse create_tensor expression
+    fn parse_create_tensor(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::CreateTensor, "Expected 'create_tensor'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after create_tensor")?;
+        
+        let shape = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after create_tensor")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("create_tensor".to_string(), start_location.clone()))),
+            arguments: vec![*shape],
+            location: start_location,
+        }))
+    }
+
+    /// Parse create_vector expression
+    fn parse_create_vector(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::CreateVector, "Expected 'create_vector'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after create_vector")?;
+        
+        let data = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after create_vector")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("create_vector".to_string(), start_location.clone()))),
+            arguments: vec![*data],
+            location: start_location,
+        }))
+    }
+
+    /// Parse create_matrix expression
+    fn parse_create_matrix(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::CreateMatrix, "Expected 'create_matrix'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after create_matrix")?;
+        
+        let rows = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after rows")?;
+        let cols = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after create_matrix")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("create_matrix".to_string(), start_location.clone()))),
+            arguments: vec![*rows, *cols],
+            location: start_location,
+        }))
+    }
+
+    /// Parse ML confusion matrix expression
+    fn parse_ml_confusion_matrix(&mut self) -> Result<Expression> {
+        let start_location = self.current_location();
+        self.consume(&TokenType::MLConfusionMatrix, "Expected 'ml_confusion_matrix'")?;
+        self.consume(&TokenType::LeftParen, "Expected '(' after ml_confusion_matrix")?;
+        
+        let predictions = Box::new(self.parse_expression()?);
+        self.consume(&TokenType::Comma, "Expected ',' after predictions")?;
+        let actual = Box::new(self.parse_expression()?);
+        
+        self.consume(&TokenType::RightParen, "Expected ')' after ml_confusion_matrix")?;
+        
+        Ok(Expression::Call(CallExpression {
+            function: Box::new(Expression::Identifier(Identifier::new("ml_confusion_matrix".to_string(), start_location.clone()))),
+            arguments: vec![*predictions, *actual],
+            location: start_location,
+        }))
     }
 }
 
