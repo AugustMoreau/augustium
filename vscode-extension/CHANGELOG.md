@@ -2,6 +2,27 @@
 
 All notable changes to the Augustium VS Code extension will be documented in this file.
 
+## [1.2.0] - 2024-01-XX
+
+### Added
+- **Machine Learning Support**: Complete syntax highlighting for ML keywords and functions
+- **ML Code Snippets**: Pre-built templates for neural networks, training loops, and tensor operations
+- **Computer Vision Snippets**: CNN model templates and image processing functions
+- **Enhanced Type Support**: Added f32, f64 floating-point types for ML computations
+- **ML Keywords**: Tensor, Model, Layer, Optimizer, Dataset, GPU, CUDA operations
+- **ML Functions**: train, predict, forward, backward, compile, fit, evaluate
+- **ML Types**: Conv2D, LSTM, Transformer, ResNet, VGG, BERT, GPT, ReLU, Softmax
+- **Tensor Operations**: zeros, ones, randn, eye, matmul, relu, sigmoid, tanh, softmax
+
+### Changed
+- **Extension Description**: Updated to highlight ML capabilities
+- **Version Bump**: Updated to 1.2.0 for ML feature release
+
+### Technical
+- Enhanced augustium.tmLanguage.json with ML-specific syntax patterns
+- Added comprehensive ML code snippets in augustium.json
+- Updated package.json description to reflect ML capabilities
+
 ## [1.1.0] - 2024-01-XX
 
 ### Added

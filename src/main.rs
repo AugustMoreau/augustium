@@ -29,6 +29,10 @@ pub mod stdlib;
 pub mod syntax_standard;
 pub mod dev_tools;
 
+// WebAssembly backend (optional)
+#[cfg(feature = "wasm")]
+mod wasm_backend;
+
 use crate::error::{CompilerError, Result};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
@@ -36,6 +40,9 @@ use crate::semantic::SemanticAnalyzer;
 use crate::codegen::CodeGenerator;
 use crate::optimization::Optimizer;
 use crate::avm::AVM;
+
+#[cfg(feature = "wasm")]
+use crate::wasm_backend::WasmCodeGenerator;
 
 // Show help when user runs augustc without args or with --help
 fn print_help() {
@@ -61,7 +68,7 @@ fn print_help() {
     println!("    --debug           Enable debug output");
     println!("    --optimize        Enable optimizations");
     println!("    --check           Only check syntax and types");
-    println!("    --target <arch>   Target architecture (avm, evm)");
+    println!("    --target <arch>   Target architecture (avm, evm, wasm)");
     println!("    --gas-limit <n>   Set gas limit for execution");
     println!("    --verbose, -v     Verbose output");
     println!("    --run, -r         Compile and immediately execute bytecode");
@@ -75,6 +82,7 @@ fn print_help() {
     println!("    augustc run contract.aug          # Compile and execute file");
     println!("    augustc build --optimize          # Build with optimizations");
     println!("    augustc test --verbose            # Run tests with verbose output");
+    println!("    augustc compile --target wasm contract.aug  # Compile to WebAssembly");
     println!("    augustc lsp                       # Start LSP server");
 }
 
@@ -373,53 +381,102 @@ fn compile_file(source_file: &str, options: CompilerOptions) -> Result<()> {
     
     // Phase 4: Code Generation
     if options.debug {
-        println!("Phase 4: Code Generation");
+        println!("Phase 4: Code Generation (target: {})", options.target);
     }
-    let mut codegen = CodeGenerator::new();
-    let mut bytecode = codegen.generate(&ast)?;
     
-    // Phase 4.5: Bytecode Optimization (if enabled)
-    if options.optimize {
-        if options.debug {
-            println!("Phase 4.5: Bytecode Optimization");
+    match options.target.as_str() {
+        "wasm" => {
+            #[cfg(feature = "wasm")]
+            {
+                let mut wasm_codegen = WasmCodeGenerator::new();
+                let wasm_bytecode = wasm_codegen.generate(&ast)?;
+                
+                if options.debug {
+                    println!("Generated {} bytes of WASM bytecode", wasm_bytecode.len());
+                }
+                
+                // Determine output file
+                let output_file = options.output_file.unwrap_or_else(|| {
+                    let path = Path::new(source_file);
+                    let stem = path.file_stem().unwrap().to_str().unwrap();
+                    format!("{}.wasm", stem)
+                });
+                
+                // Write WASM bytecode to file
+                fs::write(&output_file, wasm_bytecode)
+                    .map_err(|e| CompilerError::IoError(format!("Failed to write {}: {}", output_file, e)))?;
+                
+                if options.debug {
+                    println!("WASM bytecode written to: {}", output_file);
+                }
+                
+                // Note: WASM execution requires a WASM runtime, so we skip immediate execution
+                if options.run_immediately {
+                    println!("Note: WASM execution requires a WebAssembly runtime. Use a browser or Node.js to run the generated .wasm file.");
+                }
+            }
+            
+            #[cfg(not(feature = "wasm"))]
+            {
+                return Err(CompilerError::UnsupportedTarget("WASM support not enabled. Compile with --features wasm".to_string()));
+            }
         }
-        let optimizer = Optimizer::new();
-        optimizer.optimize_bytecode(&mut bytecode)?;
-        
-        if options.debug {
-            println!("Bytecode optimization completed");
+        "avm" | "evm" => {
+            let mut codegen = CodeGenerator::new();
+            let mut bytecode = codegen.generate(&ast)?;
+            
+            // Phase 4.5: Bytecode Optimization (if enabled)
+            if options.optimize {
+                if options.debug {
+                    println!("Phase 4.5: Bytecode Optimization");
+                }
+                let optimizer = Optimizer::new();
+                optimizer.optimize_bytecode(&mut bytecode)?;
+                
+                if options.debug {
+                    println!("Bytecode optimization completed");
+                }
+            }
+            
+            if options.debug {
+                println!("Generated {} instructions of bytecode", bytecode.len());
+            }
+            
+            // Determine output file
+            let output_file = options.output_file.unwrap_or_else(|| {
+                let path = Path::new(source_file);
+                let stem = path.file_stem().unwrap().to_str().unwrap();
+                let extension = if options.target == "evm" { "evm" } else { "avm" };
+                format!("{}.{}", stem, extension)
+            });
+            
+            // Write bytecode to file
+            fs::write(&output_file, bytecode.to_bytes())
+                .map_err(|e| CompilerError::IoError(format!("Failed to write {}: {}", output_file, e)))?;
+            
+            if options.debug {
+                println!("Bytecode written to: {}", output_file);
+            }
+            
+            // Run immediately if requested (only for AVM)
+            if options.run_immediately {
+                if options.target == "avm" {
+                    if options.debug {
+                        println!("Phase 5: Execution");
+                    }
+                    let mut vm = AVM::new();
+                    let result = vm.execute(&bytecode)?;
+                    
+                    if options.debug {
+                        println!("Execution result: {:?}", result);
+                    }
+                } else {
+                    println!("Note: EVM execution not supported in this version. Deploy to an Ethereum-compatible network.");
+                }
+            }
         }
-    }
-    
-    if options.debug {
-        println!("Generated {} instructions of bytecode", bytecode.len());
-    }
-    
-    // Determine output file
-    let output_file = options.output_file.unwrap_or_else(|| {
-        let path = Path::new(source_file);
-        let stem = path.file_stem().unwrap().to_str().unwrap();
-        format!("{}.avm", stem)
-    });
-    
-    // Write bytecode to file
-    fs::write(&output_file, bytecode.to_bytes())
-        .map_err(|e| CompilerError::IoError(format!("Failed to write {}: {}", output_file, e)))?;
-    
-    if options.debug {
-        println!("Bytecode written to: {}", output_file);
-    }
-    
-    // Run immediately if requested
-    if options.run_immediately {
-        if options.debug {
-            println!("Phase 5: Execution");
-        }
-        let mut vm = AVM::new();
-        let result = vm.execute(&bytecode)?;
-        
-        if options.debug {
-            println!("Execution result: {:?}", result);
+        _ => {
+            return Err(CompilerError::UnsupportedTarget(format!("Unknown target: {}. Supported targets: avm, evm, wasm", options.target)));
         }
     }
     

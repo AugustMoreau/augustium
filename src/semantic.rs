@@ -1103,6 +1103,7 @@ impl SemanticAnalyzer {
             Literal::String(_) => Type::String,
             Literal::Boolean(_) => Type::Bool,
             Literal::Address(_) => Type::Address,
+            Literal::Null => Type::Option(Box::new(Type::U32)), // Null as optional type
         }
     }
     

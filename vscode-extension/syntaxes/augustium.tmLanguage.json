@@ -23,6 +23,10 @@
                     "match": "\\b(require|assert|assert_eq|test|storage|event|mapping)\\b"
                 },
                 {
+                    "name": "keyword.ml.augustium",
+                    "match": "\\b(Tensor|Model|Layer|Optimizer|Dataset|GPU|CUDA|train|predict|forward|backward|compile|fit|evaluate)\\b"
+                },
+                {
                     "name": "storage.modifier.augustium",
                     "match": "\\b(public|private|internal|external|view|pure|payable)\\b"
                 }
@@ -32,7 +36,11 @@
             "patterns": [
                 {
                     "name": "storage.type.augustium",
-                    "match": "\\b(u8|u16|u32|u64|u128|u256|i8|i16|i32|i64|i128|i256|bool|address|string|bytes|bytes32)\\b"
+                    "match": "\\b(u8|u16|u32|u64|u128|u256|i8|i16|i32|i64|i128|i256|bool|address|string|bytes|bytes32|f32|f64)\\b"
+                },
+                {
+                    "name": "storage.type.ml.augustium",
+                    "match": "\\b(Conv2D|LSTM|Transformer|ResNet|VGG|BERT|GPT|ReLU|Softmax|Adam|SGD|CrossEntropy|MSE)\\b"
                 },
                 {
                     "name": "entity.name.type.augustium",
@@ -49,6 +57,10 @@
                 {
                     "name": "support.function.augustium",
                     "match": "\\b(transfer|approve|balance_of|allowance|mint|burn|new|from_hex|set_caller|caller)\\b"
+                },
+                {
+                    "name": "support.function.ml.augustium",
+                    "match": "\\b(zeros|ones|randn|eye|matmul|relu|sigmoid|tanh|softmax|argmax|reshape|transpose|sum|mean|std|normalize)\\b"
                 }
             ]
         },

@@ -423,6 +423,10 @@ impl EvmTranslator {
                         // For now just push zero-padded 20-byte address placeholder
                         instructions.push(EvmInstruction::Push(vec![0u8; 20]));
                     }
+                    Literal::Null => {
+                        // Push zero for null values
+                        instructions.push(EvmInstruction::Push(vec![0u8]));
+                    }
                 }
             }
             Expression::Identifier(_ident) => {

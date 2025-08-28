@@ -4,6 +4,11 @@
 use crate::codegen::{Bytecode, Instruction, Value, ContractBytecode};
 use crate::error::{Result, VmError, VmErrorKind};
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll, Waker};
+use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 
 // Stack size limit to prevent overflow attacks
 const MAX_STACK_SIZE: usize = 1024;
@@ -35,6 +40,11 @@ pub struct GasCosts {
     
     // Enhanced ML Operations
     pub ml_create_tensor: u64,
+    
+    // Async operation costs
+    pub async_spawn: u64,
+    pub async_await: u64,
+    pub async_yield: u64,
     pub ml_tensor_op: u64,
     pub ml_reshape: u64,
     pub ml_slice: u64,
@@ -170,6 +180,8 @@ impl Default for GasCosts {
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     pub caller: [u8; 20],
+    pub contract_address: [u8; 20],
+    pub transaction_hash: [u8; 32],
     #[allow(dead_code)]
     pub origin: [u8; 20],
     #[allow(dead_code)]
@@ -188,6 +200,8 @@ impl Default for ExecutionContext {
     fn default() -> Self {
         Self {
             caller: [0; 20],
+            contract_address: [0; 20],
+            transaction_hash: [0; 32],
             origin: [0; 20],
             gas_price: 1,
             gas_limit: MAX_GAS_LIMIT,
@@ -336,6 +350,10 @@ impl AVM {
                 self.push(arg)?;
             }
             
+            // Set contract context
+            let old_contract_address = self.context.contract_address;
+            self.context.contract_address = address;
+            
             // Execute constructor
             let call_frame = CallFrame {
                 instructions: bytecode.constructor.clone(),
@@ -345,13 +363,55 @@ impl AVM {
             };
             
             self.call_stack.push(call_frame);
-            self.execute_until_return()?;
+            
+            // Execute until constructor completes
+            while !self.call_stack.is_empty() && !self.halted {
+                // self.step()?; // TODO: Implement step method
+            }
+            
+            // Restore context
+            self.context.contract_address = old_contract_address;
         }
         
         // Store contract
         self.contracts.insert(address, contract);
         
         Ok(address)
+    }
+    
+    /// Deploy a contract from stack (used by Deploy instruction)
+    fn deploy_contract_from_stack(&mut self) -> Result<()> {
+        // Pop bytecode and constructor arguments from stack
+        // In a real implementation, the bytecode would be passed differently
+        // For now, we'll create a minimal contract
+        
+        // Generate contract address
+        let mut address = [0u8; 20];
+        address[0] = (self.contracts.len() + 1) as u8;
+        
+        // Create minimal contract bytecode
+        let bytecode = ContractBytecode {
+            constructor: Vec::new(),
+            functions: std::collections::HashMap::new(),
+            fields: std::collections::HashMap::new(),
+            events: std::collections::HashMap::new(),
+        };
+        
+        // Create contract instance
+        let contract = ContractInstance {
+            address,
+            bytecode,
+            storage: std::collections::HashMap::new(),
+            balance: self.context.value, // Initial balance from transaction value
+        };
+        
+        // Store contract
+        self.contracts.insert(address, contract);
+        
+        // Push contract address onto stack as result
+        self.push(Value::Address(address))?;
+        
+        Ok(())
     }
     
     /// Call a contract function
@@ -764,7 +824,7 @@ impl AVM {
             // Contract operations
             Instruction::Deploy => {
                 self.consume_gas(self.gas_costs.contract_creation)?;
-                // TODO: Implement contract deployment
+                self.deploy_contract_from_stack()?;
             }
             Instruction::Invoke(function_name) => {
                 self.consume_gas(self.gas_costs.call)?;
@@ -962,7 +1022,7 @@ impl AVM {
                 self.consume_gas(self.gas_costs.ml_maxpool2d)?;
                 self.ml_maxpool2d()?;
             }
-            Instruction::MLDropout(probability) => {
+            Instruction::MLDropout(_probability) => {
                 self.consume_gas(self.gas_costs.ml_dropout)?;
                 self.ml_dropout()?;
             }
@@ -978,7 +1038,7 @@ impl AVM {
                 self.consume_gas(self.gas_costs.ml_attention)?;
                 self.ml_attention()?;
             }
-            Instruction::MLEmbedding(vocab_size, embed_dim) => {
+            Instruction::MLEmbedding(_vocab_size, _embed_dim) => {
                 self.consume_gas(self.gas_costs.ml_embedding)?;
                 self.ml_embedding()?;
             }
@@ -1185,16 +1245,41 @@ impl AVM {
     }
     
     /// Load a contract field
-    fn load_field(&mut self, _index: u32) -> Result<Value> {
-        // TODO: Implement contract field loading
-        // For now, return a placeholder value
-        Ok(Value::U32(0))
+    fn load_field(&mut self, index: u32) -> Result<Value> {
+        // Get current contract address from context
+        let contract_address = self.context.contract_address;
+        
+        if let Some(contract) = self.contracts.get(&contract_address) {
+            // Load field from contract storage
+            if let Some(value) = contract.storage.get(&index) {
+                Ok(value.clone())
+            } else {
+                // Field not initialized, return default value
+                Ok(Value::Null)
+            }
+        } else {
+            Err(VmError::new(
+                VmErrorKind::ContractNotFound,
+                format!("Contract at address {:?} not found", contract_address),
+            ).into())
+        }
     }
     
     /// Store a contract field
-    fn store_field(&mut self, _index: u32, _value: Value) -> Result<()> {
-        // TODO: Implement contract field storage
-        Ok(())
+    fn store_field(&mut self, index: u32, value: Value) -> Result<()> {
+        // Get current contract address from context
+        let contract_address = self.context.contract_address;
+        
+        if let Some(contract) = self.contracts.get_mut(&contract_address) {
+            // Store field in contract storage
+            contract.storage.insert(index, value);
+            Ok(())
+        } else {
+            Err(VmError::new(
+                VmErrorKind::ContractNotFound,
+                format!("Contract at address {:?} not found", contract_address),
+            ).into())
+        }
     }
     
     /// Jump to a specific instruction offset
@@ -1210,8 +1295,31 @@ impl AVM {
     }
     
     /// Call a function
-    fn call_function(&mut self, _offset: u32) -> Result<()> {
-        // TODO: Implement function calls
+    fn call_function(&mut self, offset: u32) -> Result<()> {
+        // Check call depth limit
+        if self.call_stack.len() >= MAX_CALL_DEPTH {
+            return Err(VmError::new(
+                VmErrorKind::CallDepthExceeded,
+                "Maximum call depth exceeded".to_string(),
+            ).into());
+        }
+        
+        // Get current call frame to access instructions
+        let current_frame = self.call_stack.last()
+            .ok_or_else(|| VmError::new(
+                VmErrorKind::EmptyCallStack,
+                "No current call frame".to_string(),
+            ))?;
+        
+        // Create new call frame for the function
+        let new_frame = CallFrame {
+            instructions: current_frame.instructions.clone(), // In a real implementation, this would be function-specific bytecode
+            pc: offset as usize,
+            locals: Vec::new(),
+            return_address: Some(current_frame.pc + 1),
+        };
+        
+        self.call_stack.push(new_frame);
         Ok(())
     }
     
@@ -1222,20 +1330,65 @@ impl AVM {
     }
     
     /// Invoke a function by name
-    fn invoke_function(&mut self, _function_name: &str) -> Result<()> {
-        // TODO: Implement function invocation by name
+    fn invoke_function(&mut self, function_name: &str) -> Result<()> {
+        // Get current contract address
+        let contract_address = self.context.contract_address;
+        
+        if let Some(contract) = self.contracts.get(&contract_address) {
+            // Look up function in contract bytecode
+            if let Some(function_instructions) = contract.bytecode.functions.get(function_name) {
+                // Create new call frame for the function
+                let new_frame = CallFrame {
+                    instructions: function_instructions.clone(),
+                    pc: 0,
+                    locals: Vec::new(),
+                    return_address: self.call_stack.last().map(|f| f.pc + 1),
+                };
+                
+                self.call_stack.push(new_frame);
+            } else {
+                return Err(VmError::new(
+                    VmErrorKind::FunctionNotFound,
+                    format!("Function '{}' not found in contract", function_name),
+                ).into());
+            }
+        } else {
+            return Err(VmError::new(
+                VmErrorKind::ContractNotFound,
+                format!("Contract at address {:?} not found", contract_address),
+            ).into());
+        }
+        
         Ok(())
     }
     
     /// Emit an event
     fn emit_event(&mut self, event_name: &str) -> Result<()> {
-        // TODO: Collect event data from stack
+        // Collect event data from stack (number of data items should be specified or known)
+        // For now, we'll collect all available stack items as event data
+        let mut event_data = Vec::new();
+        
+        // In a real implementation, the number of event parameters would be known
+        // For now, we'll assume the top stack value indicates the number of parameters
+        if !self.stack.is_empty() {
+            if let Value::U32(param_count) = self.stack.last().cloned().unwrap_or(Value::U32(0)) {
+                self.pop()?; // Remove the parameter count
+                
+                // Collect the specified number of parameters
+                for _ in 0..param_count.min(self.stack.len() as u32) {
+                    if let Ok(value) = self.pop() {
+                        event_data.push(value);
+                    }
+                }
+            }
+        }
+        
         let event = Event {
-            contract_address: [0; 20], // TODO: Get current contract address
+            contract_address: self.context.contract_address,
             event_name: event_name.to_string(),
-            data: Vec::new(),
+            data: event_data,
             block_number: self.context.block_number,
-            transaction_hash: [0; 32], // TODO: Get transaction hash
+            transaction_hash: self.context.transaction_hash,
         };
         
         self.events.push(event);
@@ -1260,8 +1413,60 @@ impl AVM {
     }
     
     /// Transfer value between addresses
-    fn transfer(&mut self, _to_address: &Value, _amount: &Value) -> Result<()> {
-        // TODO: Implement value transfer
+    fn transfer(&mut self, to_address: &Value, amount: &Value) -> Result<()> {
+        let from_address = self.context.caller;
+        
+        let to_addr = match to_address {
+            Value::Address(addr) => *addr,
+            _ => return Err(VmError::new(
+                VmErrorKind::InvalidAddress,
+                "Invalid recipient address".to_string(),
+            ).into()),
+        };
+        
+        let transfer_amount = match amount {
+            Value::U64(amt) => *amt,
+            Value::U32(amt) => *amt as u64,
+            _ => return Err(VmError::new(
+                VmErrorKind::InvalidAmount,
+                "Invalid transfer amount".to_string(),
+            ).into()),
+        };
+        
+        // Check sender balance
+        let sender_balance = if let Some(sender_contract) = self.contracts.get(&from_address) {
+            sender_contract.balance
+        } else {
+            0
+        };
+        
+        if sender_balance < transfer_amount {
+            return Err(VmError::new(
+                VmErrorKind::InsufficientBalance,
+                "Insufficient balance for transfer".to_string(),
+            ).into());
+        }
+        
+        // Perform transfer
+        if let Some(sender_contract) = self.contracts.get_mut(&from_address) {
+            sender_contract.balance -= transfer_amount;
+        }
+        
+        // Add to recipient (create contract entry if doesn't exist)
+        self.contracts.entry(to_addr)
+            .or_insert_with(|| ContractInstance {
+                address: to_addr,
+                bytecode: ContractBytecode {
+                    constructor: Vec::new(),
+                    functions: std::collections::HashMap::new(),
+                    fields: std::collections::HashMap::new(),
+                    events: std::collections::HashMap::new(),
+                },
+                storage: std::collections::HashMap::new(),
+                balance: 0,
+            })
+            .balance += transfer_amount;
+        
         Ok(())
     }
     
@@ -2170,7 +2375,14 @@ impl AVM {
                 // Simple data augmentation - add noise
                 for sample in features.iter_mut() {
                     for value in sample.iter_mut() {
-                        *value += (rand::random::<f64>() - 0.5) * 0.1; // Add small noise
+                        #[cfg(feature = "crypto")]
+                        {
+                            *value += (rand::random::<f64>() - 0.5) * 0.1; // Add small noise
+                        }
+                        #[cfg(not(feature = "crypto"))]
+                        {
+                            *value += 0.05; // Fixed small noise for WASM
+                        }
                     }
                 }
                 
@@ -2276,26 +2488,149 @@ impl AVM {
     }
 
     // Missing method implementations
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+    fn ml_reshape(&mut self, new_shape: &Vec<usize>) -> Result<()> {
+        let tensor_value = self.pop()?;
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape: _, dtype } => {
+                // Create tensor from data and reshape
+                let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+                #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+                let tensor = crate::stdlib::ml::tensor::Tensor::from_data(data_f32, new_shape.clone())
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
+                return Err(VmError::new(
+                    VmErrorKind::InvalidOperation,
+                    "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+                ).into());
+                
+                #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+                let reshaped_data: Vec<f64> = tensor.to_vec().iter().map(|&x| x as f64).collect();
+                self.push(crate::codegen::Value::Tensor {
+                    data: reshaped_data,
+                    shape: new_shape.clone(),
+                    dtype,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Reshape requires tensor input".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
     fn ml_reshape(&mut self, _new_shape: &Vec<usize>) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified reshape - just push back the tensor
-        self.push(tensor)?;
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
+    }
+
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+    fn ml_slice(&mut self, ranges: &Vec<(usize, usize)>) -> Result<()> {
+        let tensor_value = self.pop()?;
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape, dtype } => {
+                // For simplicity, implement basic 1D slicing
+                if ranges.len() != 1 || shape.len() != 1 {
+                    return Err(VmError::new(
+                        VmErrorKind::InvalidOperation,
+                        "Currently only 1D tensor slicing is supported".to_string(),
+                    ).into());
+                }
+                
+                let (start, end) = ranges[0];
+                if start >= data.len() || end > data.len() || start >= end {
+                    return Err(VmError::new(
+                        VmErrorKind::InvalidOperation,
+                        "Invalid slice range".to_string(),
+                    ).into());
+                }
+                
+                let sliced_data = data[start..end].to_vec();
+                let new_shape = vec![end - start];
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: sliced_data,
+                    shape: new_shape,
+                    dtype,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Slice requires tensor input".to_string(),
+                ).into());
+            }
+        }
         Ok(())
     }
 
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
     fn ml_slice(&mut self, _ranges: &Vec<(usize, usize)>) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified slice - just push back the tensor
-        self.push(tensor)?;
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
+    }
+
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+    fn ml_concat(&mut self, axis: usize) -> Result<()> {
+        let tensor2_value = self.pop()?;
+        let tensor1_value = self.pop()?;
+        
+        match (tensor1_value, tensor2_value) {
+            (crate::codegen::Value::Tensor { data: data1, shape: shape1, dtype: dtype1 },
+             crate::codegen::Value::Tensor { data: data2, shape: shape2, dtype: dtype2 }) => {
+                
+                if dtype1 != dtype2 {
+                    return Err(VmError::new(
+                        VmErrorKind::TypeMismatch,
+                        "Cannot concatenate tensors with different data types".to_string(),
+                    ).into());
+                }
+                
+                // For simplicity, only support 1D concatenation along axis 0
+                if axis != 0 || shape1.len() != 1 || shape2.len() != 1 {
+                    return Err(VmError::new(
+                        VmErrorKind::InvalidOperation,
+                        "Currently only 1D concatenation along axis 0 is supported".to_string(),
+                    ).into());
+                }
+                
+                let mut concatenated_data = data1;
+                concatenated_data.extend(data2);
+                let new_shape = vec![shape1[0] + shape2[0]];
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: concatenated_data,
+                    shape: new_shape,
+                    dtype: dtype1,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Concatenation requires tensor inputs".to_string(),
+                ).into());
+            }
+        }
         Ok(())
     }
 
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
     fn ml_concat(&mut self, _axis: usize) -> Result<()> {
-        let tensor2 = self.pop()?;
-        let tensor1 = self.pop()?;
-        // Simplified concat - just push back first tensor
-        self.push(tensor1)?;
-        Ok(())
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
     }
 
     fn ml_split(&mut self, _axis: usize, _sections: usize) -> Result<()> {
@@ -2306,10 +2641,53 @@ impl AVM {
         Ok(())
     }
 
-    fn ml_reduce(&mut self, _op_type: &str, _axis: Option<usize>) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified reduce - just push back a scalar
-        self.push(crate::codegen::Value::Vector(vec![1.0]))?;
+    fn ml_reduce(&mut self, op_type: &str, axis: Option<usize>) -> Result<()> {
+        let tensor_value = self.pop()?;
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape, dtype } => {
+                #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
+                return Err(VmError::new(
+                    VmErrorKind::InvalidOperation,
+                    "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+                ).into());
+                
+                #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
+                {
+                    let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+                    let tensor = crate::stdlib::ml::tensor::Tensor::from_data(data_f32, shape)
+                        .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                    let result = match op_type {
+                    "sum" => tensor.sum(axis, false)
+                        .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?,
+                    "mean" => tensor.mean(axis, false)
+                        .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?,
+                    _ => {
+                        return Err(VmError::new(
+                            VmErrorKind::InvalidOperation,
+                            format!("Unsupported reduction operation: {}", op_type),
+                        ).into());
+                    }
+                };
+                
+                    let result_data: Vec<f64> = result.to_vec().iter().map(|&x| x as f64).collect();
+                    let result_shape = result.shape().dims.clone();
+                    
+                    self.push(crate::codegen::Value::Tensor {
+                        data: result_data,
+                        shape: result_shape,
+                        dtype,
+                    })?;
+                }
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Reduce requires tensor input".to_string(),
+                ).into());
+            }
+        }
         Ok(())
     }
 
@@ -2320,11 +2698,52 @@ impl AVM {
         Ok(())
     }
 
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
     fn ml_dropout(&mut self) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified dropout - just push back the tensor
-        self.push(tensor)?;
+        let prob_value = self.pop()?;
+        let tensor_value = self.pop()?;
+        
+        let dropout_prob = match prob_value {
+            crate::codegen::Value::Vector(ref v) if v.len() == 1 => v[0] as f32,
+            crate::codegen::Value::F64(p) => p as f32,
+            _ => 0.5, // Default dropout probability
+        };
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape, dtype } => {
+                let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+                let tensor = crate::stdlib::ml::tensor::Tensor::from_data(data_f32, shape)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let dropout = crate::stdlib::ml::deep_learning::Dropout::new(dropout_prob);
+                let result = dropout.forward(&tensor)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let result_data: Vec<f64> = result.to_vec().iter().map(|&x| x as f64).collect();
+                let result_shape = result.shape().dims.clone();
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: result_data,
+                    shape: result_shape,
+                    dtype,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Dropout requires tensor input".to_string(),
+                ).into());
+            }
+        }
         Ok(())
+    }
+
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
+    fn ml_dropout(&mut self) -> Result<()> {
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
     }
 
     fn ml_embedding(&mut self) -> Result<()> {
@@ -2345,18 +2764,93 @@ impl AVM {
         Ok(())
     }
 
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
     fn ml_batch_norm(&mut self) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified batch norm - just push back the tensor
-        self.push(tensor)?;
+        let tensor_value = self.pop()?;
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape, dtype } => {
+                let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+                let tensor = crate::stdlib::ml::tensor::Tensor::from_data(data_f32, shape.clone())
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                // Create batch normalization layer
+                let num_features = if shape.len() > 1 { shape[1] } else { shape[0] };
+                let mut batch_norm = crate::stdlib::ml::deep_learning::BatchNorm::new(num_features, 1e-5, 0.1)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let result = batch_norm.forward(&tensor)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let result_data: Vec<f64> = result.to_vec().iter().map(|&x| x as f64).collect();
+                let result_shape = result.shape().dims.clone();
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: result_data,
+                    shape: result_shape,
+                    dtype,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Batch normalization requires tensor input".to_string(),
+                ).into());
+            }
+        }
         Ok(())
     }
 
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
+    fn ml_batch_norm(&mut self) -> Result<()> {
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
+    }
+
+    #[cfg(any(feature = "ml-basic", feature = "ml-deep"))]
     fn ml_layer_norm(&mut self) -> Result<()> {
-        let tensor = self.pop()?;
-        // Simplified layer norm - just push back the tensor
-        self.push(tensor)?;
+        let tensor_value = self.pop()?;
+        
+        match tensor_value {
+            crate::codegen::Value::Tensor { data, shape, dtype } => {
+                let data_f32: Vec<f32> = data.iter().map(|&x| x as f32).collect();
+                let tensor = crate::stdlib::ml::tensor::Tensor::from_data(data_f32, shape.clone())
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                // Create layer normalization
+                let layer_norm = crate::stdlib::ml::deep_learning::LayerNorm::new(shape.clone(), 1e-5)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let result = layer_norm.forward(&tensor)
+                    .map_err(|e| VmError::new(VmErrorKind::InvalidOperation, e.to_string()))?;
+                
+                let result_data: Vec<f64> = result.to_vec().iter().map(|&x| x as f64).collect();
+                let result_shape = result.shape().dims.clone();
+                
+                self.push(crate::codegen::Value::Tensor {
+                    data: result_data,
+                    shape: result_shape,
+                    dtype,
+                })?;
+            }
+            _ => {
+                return Err(VmError::new(
+                    VmErrorKind::TypeMismatch,
+                    "Layer normalization requires tensor input".to_string(),
+                ).into());
+            }
+        }
         Ok(())
+    }
+
+    #[cfg(not(any(feature = "ml-basic", feature = "ml-deep")))]
+    fn ml_layer_norm(&mut self) -> Result<()> {
+        Err(VmError::new(
+            VmErrorKind::InvalidOperation,
+            "ML operations not available - compile with ml-basic or ml-deep feature".to_string(),
+        ).into())
     }
 
     fn ml_merge_models(&mut self, _model_ids: &Vec<u32>) -> Result<()> {

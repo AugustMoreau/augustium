@@ -7,7 +7,7 @@ use std::path::Path;
 #[test]
 fn test_compiler_help() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--help"])
+        .args(["run", "--bin", "augustc", "--", "--help"])
         .output()
         .expect("Failed to execute compiler");
     
@@ -33,7 +33,7 @@ contract HelloWorld {
     
     // Try to compile the contract
     let output = Command::new("cargo")
-        .args(["run", "--", "--check", test_file])
+        .args(["run", "--bin", "augustc", "--", "--check", test_file])
         .output()
         .expect("Failed to execute compiler");
     
@@ -64,7 +64,7 @@ contract InvalidContract {
     
     // Try to compile the invalid contract
     let output = Command::new("cargo")
-        .args(["run", "--", "--check", test_file])
+        .args(["run", "--bin", "augustc", "--", "--check", test_file])
         .output()
         .expect("Failed to execute compiler");
     
@@ -80,7 +80,7 @@ contract InvalidContract {
 #[test]
 fn test_compiler_version() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--version"])
+        .args(["run", "--bin", "augustc", "--", "--version"])
         .output()
         .expect("Failed to execute compiler");
     

@@ -1,8 +1,8 @@
 {
     "name": "augustium",
     "displayName": "Augustium",
-    "description": "Language support for Augustium smart contract development with LSP integration. Visit https://augustium-lang.org for more info and https://docs.augustium-lang.org for documentation.",
-    "version": "1.1.1",
+    "description": "Language support for Augustium smart contract development with advanced ML capabilities and LSP integration. Features syntax highlighting for machine learning, deep learning, computer vision, NLP, and reinforcement learning. Visit https://augustium-lang.org for more info and https://docs.augustium-lang.org for documentation.",
+    "version": "1.2.0",
     "publisher": "augustium-team",
     "icon": "icon.png",
     "license": "MIT",
@@ -23,6 +23,52 @@
         "Linters"
     ],
     "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Augustium",
+      "properties": {
+        "augustium.formatter.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic code formatting"
+        },
+        "augustium.formatter.indentSize": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of spaces for indentation"
+        },
+        "augustium.formatter.maxLineLength": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum line length before wrapping"
+        },
+        "augustium.linter.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time linting"
+        },
+        "augustium.linter.rules": {
+          "type": "object",
+          "default": {
+            "unusedVariables": "warn",
+            "deadCode": "warn",
+            "gasOptimization": "info",
+            "securityIssues": "error"
+          },
+          "description": "Linter rule configuration"
+        },
+        "augustium.mlTypes.completionEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ML type completions"
+        },
+        "augustium.realTimeErrors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show errors in real-time as you type"
+        }
+      }
+    },
         "languages": [{
             "id": "augustium",
             "aliases": ["Augustium", "augustium"],
@@ -56,6 +102,36 @@
             }
         },
         "commands": [
+      {
+        "command": "augustium.formatDocument",
+        "title": "Format Document",
+        "category": "Augustium"
+      },
+      {
+        "command": "augustium.refactor.extractFunction",
+        "title": "Extract Function",
+        "category": "Augustium Refactor"
+      },
+      {
+        "command": "augustium.refactor.renameSymbol",
+        "title": "Rename Symbol",
+        "category": "Augustium Refactor"
+      },
+      {
+        "command": "augustium.refactor.inlineVariable",
+        "title": "Inline Variable",
+        "category": "Augustium Refactor"
+      },
+      {
+        "command": "augustium.analysis.gasOptimization",
+        "title": "Analyze Gas Usage",
+        "category": "Augustium Analysis"
+      },
+      {
+        "command": "augustium.analysis.securityAudit",
+        "title": "Security Audit",
+        "category": "Augustium Analysis"
+      },
             {
                 "command": "augustium.restart",
                 "title": "Restart Language Server",
@@ -77,6 +153,9 @@
         "vscode:prepublish": "npm run compile"
     },
     "dependencies": {
+    "vscode-languageclient": "^8.1.0",
+    "vscode-languageserver": "^8.1.0",
+    "vscode-languageserver-textdocument": "^1.0.8",
         "vscode-languageclient": "^8.0.2"
     },
     "devDependencies": {

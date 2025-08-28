@@ -887,6 +887,7 @@ impl CodeGenerator {
                 }
                 Value::Address(bytes)
             }
+            Literal::Null => Value::U32(0), // Null as zero value
         };
         
         self.emit(Instruction::Push(value));

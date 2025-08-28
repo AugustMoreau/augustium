@@ -216,9 +216,19 @@ impl Parser {
             Visibility::Private
         };
         
+        // Parse async keyword
+        let is_async = self.match_token(&TokenType::Async);
+        
         self.consume(&TokenType::Fn, "Expected 'fn'")?;
         
         let name = self.parse_identifier()?;
+        
+        // Parse generic type parameters
+        let type_parameters = if self.match_token(&TokenType::Less) {
+            self.parse_type_parameters()?
+        } else {
+            Vec::new()
+        };
         
         self.consume(&TokenType::LeftParen, "Expected '(' after function name")?;
         
@@ -240,16 +250,26 @@ impl Parser {
             None
         };
         
+        // Parse where clause
+        let where_clause = if self.match_token(&TokenType::Where) {
+            Some(self.parse_where_clause()?)
+        } else {
+            None
+        };
+        
         let body = self.parse_block()?;
         
         Ok(Function {
             name,
+            type_parameters,
             parameters,
             return_type,
             body,
             visibility,
-            mutability: Mutability::Immutable, // TODO: Parse mutability
-            attributes: Vec::new(), // TODO: Parse attributes
+            mutability: Mutability::Immutable,
+            attributes: Vec::new(),
+            is_async,
+            where_clause,
             location: start_location,
         })
     }
@@ -862,75 +882,89 @@ impl Parser {
                 let cols = if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
                     let cols = *n;
                     self.advance();
-                    cols
-                } else {
-                    return Err(ParseError::new(
-                        ParseErrorKind::UnexpectedToken,
-                        self.current_location(),
-                        "Expected integer for matrix cols".to_string(),
-                    ).into());
-                };
-                
-                self.consume(&TokenType::Greater, "Expected '>' after Matrix type")?;
-                
-                Ok(Type::Matrix { element_type, rows, cols })
             }
-            TokenType::Vector => {
+            TokenType::U64 => {
                 self.advance();
-                self.consume(&TokenType::Less, "Expected '<' after Vector")?;
-                let element_type = Box::new(self.parse_type()?);
-                
-                let size = if self.match_token(&TokenType::Comma) {
-                    if let TokenType::IntegerLiteral(n) = &self.peek().token_type {
-                        let size = *n;
-                        self.advance();
-                        Some(size)
-                    } else {
-                        return Err(ParseError::new(
-                            ParseErrorKind::UnexpectedToken,
-                            self.current_location(),
-                            "Expected integer for vector size".to_string(),
-                        ).into());
-                    }
-                } else {
-                    None
-                };
-                
-                self.consume(&TokenType::Greater, "Expected '>' after Vector type")?;
-                
-                Ok(Type::Vector { element_type, size })
+                Ok(Type::U64)
             }
-            TokenType::Metrics => {
+            TokenType::U128 => {
                 self.advance();
-                Ok(Type::MLMetrics)
+                Ok(Type::U128)
+            }
+            TokenType::U256 => {
+                self.advance();
+                Ok(Type::U256)
+            }
+            TokenType::I8 => {
+                self.advance();
+                Ok(Type::I8)
+            }
+            TokenType::I16 => {
+                self.advance();
+                Ok(Type::I16)
+            }
+            TokenType::I32 => {
+                self.advance();
+                Ok(Type::I32)
+            }
+            TokenType::I64 => {
+                self.advance();
+                Ok(Type::I64)
+            }
+            TokenType::I128 => {
+                self.advance();
+                Ok(Type::I128)
+            }
+            TokenType::I256 => {
+                self.advance();
+                Ok(Type::I256)
+            }
+            TokenType::F32 => {
+                self.advance();
+                Ok(Type::F32)
+            }
+            TokenType::F64 => {
+                self.advance();
+                Ok(Type::F64)
+            }
+            TokenType::Bool => {
+                self.advance();
+                Ok(Type::Bool)
+            }
+            TokenType::String => {
+                self.advance();
+                Ok(Type::String)
+            }
+            TokenType::Address => {
+                self.advance();
+                Ok(Type::Address)
+            }
+            TokenType::Bytes => {
+                self.advance();
+                Ok(Type::Bytes)
+            }
+            TokenType::Identifier(name) => {
+                let name = name.clone();
+                self.advance();
+                Ok(Type::Custom(name))
             }
             TokenType::LeftBracket => {
-                self.advance(); // consume '['
+                self.advance();
                 let element_type = Box::new(self.parse_type()?);
                 
-                let size = if self.match_token(&TokenType::Semicolon) {
-                    match &self.peek().token_type {
-                        TokenType::IntegerLiteral(n) => {
-                            let size = *n;
-                            self.advance();
-                            Some(size)
-                        }
-                        _ => return Err(ParseError::new(
-                            ParseErrorKind::UnexpectedToken,
-                            self.current_location(),
-                            "Expected array size".to_string(),
-                        ).into()),
-                    }
+                if self.match_token(&TokenType::Semicolon) {
+                    // Fixed size array: [T; N]
+                    let size = self.parse_literal_integer()?;
+                    self.consume(&TokenType::RightBracket, "Expected ']' after array size")?;
+                    Ok(Type::Array(element_type, Some(size)))
                 } else {
-                    None
-                };
-                
-                self.consume(&TokenType::RightBracket, "Expected ']' after array type")?;
-                
-                Ok(Type::Array { element_type, size })
+                    // Dynamic array: [T]
+                    self.consume(&TokenType::RightBracket, "Expected ']' after array type")?;
+                    Ok(Type::Array(element_type, None))
+                }
             }
             TokenType::LeftParen => {
-                self.advance(); // consume '('
+                self.advance();
                 let mut types = Vec::new();
                 
                 if !self.check(&TokenType::RightParen) {
@@ -942,20 +976,14 @@ impl Parser {
                     }
                 }
                 
-                self.consume(&TokenType::RightParen, "Expected ')' after tuple type")?;
-                
+                self.consume(&TokenType::RightParen, "Expected ')' after tuple types")?;
                 Ok(Type::Tuple(types))
             }
-            TokenType::Identifier(_) => {
-                let name = self.parse_identifier()?;
-                
-                // Check for generic types like Option<T> or Result<T, E>
-                if name.name == "Option" && self.match_token(&TokenType::Less) {
-                    let inner_type = Box::new(self.parse_type()?);
-                    self.consume(&TokenType::Greater, "Expected '>' after Option type")?;
-                    Ok(Type::Option(inner_type))
-                } else if name.name == "Result" && self.match_token(&TokenType::Less) {
-                    let ok_type = Box::new(self.parse_type()?);
+            _ => Err(ParseError::new(
+                ParseErrorKind::UnexpectedToken,
+                self.current_location(),
+                format!("Expected type, found {:?}", self.peek().token_type),
+            ).into()),
                     self.consume(&TokenType::Comma, "Expected ',' in Result type")?;
                     let err_type = Box::new(self.parse_type()?);
                     self.consume(&TokenType::Greater, "Expected '>' after Result type")?;

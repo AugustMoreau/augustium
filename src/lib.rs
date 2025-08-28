@@ -18,6 +18,10 @@ pub mod ide_plugins;
 pub mod web3_libs;
 pub mod deployment_tools;
 
+// WebAssembly backend (optional)
+#[cfg(feature = "wasm")]
+pub mod wasm_backend;
+
 // Re-export commonly used types for convenience
 pub use ast::*;
 pub use lexer::Lexer;
@@ -27,3 +31,7 @@ pub use codegen::CodeGenerator;
 pub use optimization::Optimizer;
 pub use avm::AVM;
 pub use error::*;
+
+// WebAssembly backend re-exports
+#[cfg(feature = "wasm")]
+pub use wasm_backend::WasmCodeGenerator;

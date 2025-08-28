@@ -54,6 +54,9 @@ pub enum CompilerError {
     /// I/O related errors
     IoError(String),
     
+    /// Unsupported compilation target
+    UnsupportedTarget(String),
+    
     /// Internal compiler errors (bugs)
     InternalError(String),
 }
@@ -216,6 +219,7 @@ pub enum VmErrorKind {
     RequirementFailed,
     AssertionFailed,
     TransactionReverted,
+    CallDepthExceeded,
     
     /// DeFi and financial errors
     InsufficientBalance,
@@ -244,7 +248,7 @@ pub enum VmErrorKind {
 }
 
 /// Source code location for error reporting
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocation {
     pub file: String,
     pub line: usize,
@@ -293,6 +297,7 @@ impl fmt::Display for CompilerError {
             CompilerError::CodegenError(e) => write!(f, "Code generation error: {}", e),
             CompilerError::VmError(e) => write!(f, "VM error: {}", e),
             CompilerError::IoError(msg) => write!(f, "I/O error: {}", msg),
+            CompilerError::UnsupportedTarget(msg) => write!(f, "Unsupported target: {}", msg),
             CompilerError::InternalError(msg) => write!(f, "Internal compiler error: {}", msg),
         }
     }
@@ -465,6 +470,7 @@ impl fmt::Display for VmErrorKind {
             VmErrorKind::ExcessiveDeviation => write!(f, "Excessive deviation"),
             VmErrorKind::StaleData => write!(f, "Stale data"),
             VmErrorKind::InvalidOperation => write!(f, "Invalid operation"),
+            VmErrorKind::CallDepthExceeded => write!(f, "Call depth exceeded"),
         }
     }
 }
@@ -568,6 +574,7 @@ impl Error for CompilerError {
             CompilerError::CodegenError(e) => Some(e),
             CompilerError::VmError(e) => Some(e),
             CompilerError::IoError(_) => None,
+            CompilerError::UnsupportedTarget(_) => None,
             CompilerError::InternalError(_) => None,
         }
     }

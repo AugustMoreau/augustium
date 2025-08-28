@@ -126,6 +126,7 @@ pub struct Signature;
 impl Signature {
     // Recover the public key from a signature (like Ethereum does)
     // This is pretty complex cryptography but essential for blockchain
+    #[cfg(all(feature = "crypto", not(target_arch = "wasm32")))]
     pub fn ecrecover(
         message_hash: &AugVec<U8>,
         signature: &AugVec<U8>,
@@ -224,6 +225,7 @@ impl Signature {
     /// 
     /// # Returns
     /// * `Result<Bool, CompilerError>` - True if signature is valid
+    #[cfg(all(feature = "crypto", not(target_arch = "wasm32")))]
     pub fn verify_signature(
         message_hash: &[U8; 32],
         signature: &[U8; 64],
@@ -283,6 +285,33 @@ impl Signature {
             Err(_) => Ok(Bool(false)),
         }
     }
+    
+    // Stub implementations when crypto feature is disabled
+    #[cfg(any(target_arch = "wasm32", not(feature = "crypto")))]
+    pub fn ecrecover(
+        _message_hash: &AugVec<U8>,
+        _signature: &AugVec<U8>,
+        _recovery_id: U8,
+    ) -> Result<Address> {
+        Err(CompilerError::SemanticError(SemanticError {
+            kind: SemanticErrorKind::InvalidOperation,
+            location: SourceLocation::unknown(),
+            message: "ECDSA signature recovery not available (crypto feature disabled)".to_string(),
+        }))
+    }
+    
+    #[cfg(any(target_arch = "wasm32", not(feature = "crypto")))]
+    pub fn verify_signature(
+        _message_hash: &[U8; 32],
+        _signature: &[U8; 64],
+        _public_key: &[U8; 64],
+    ) -> Result<Bool> {
+        Err(CompilerError::SemanticError(SemanticError {
+            kind: SemanticErrorKind::InvalidOperation,
+            location: SourceLocation::unknown(),
+            message: "ECDSA signature verification not available (crypto feature disabled)".to_string(),
+        }))
+    }
 }
 
 /// Secure random number generation for blockchain applications
@@ -296,6 +325,7 @@ impl Random {
     /// 
     /// # Returns
     /// * `Result<U256, CompilerError>` - Random 256-bit number
+    #[cfg(all(feature = "crypto", not(target_arch = "wasm32")))]
     pub fn secure_u256() -> Result<U256> {
         use rand::Rng;
         
@@ -310,6 +340,7 @@ impl Random {
     /// 
     /// # Returns
     /// * `Result<U8, CompilerError>` - Random 8-bit number
+    #[cfg(all(feature = "crypto", not(target_arch = "wasm32")))]
     pub fn secure_u8() -> Result<U8> {
         use rand::Rng;
         
@@ -326,6 +357,7 @@ impl Random {
     /// 
     /// # Returns
     /// * `Result<AugVec<U8>, CompilerError>` - Vector of random bytes
+    #[cfg(all(feature = "crypto", not(target_arch = "wasm32")))]
     pub fn secure_bytes(length: usize) -> Result<AugVec<U8>> {
         use rand::Rng;
         
@@ -346,6 +378,34 @@ impl Random {
         }
         
         Ok(result)
+    }
+    
+    // Stub implementations when crypto feature is disabled
+    #[cfg(any(target_arch = "wasm32", not(feature = "crypto")))]
+    pub fn secure_u256() -> Result<U256> {
+        Err(CompilerError::SemanticError(SemanticError {
+            kind: SemanticErrorKind::InvalidOperation,
+            location: SourceLocation::unknown(),
+            message: "Secure random number generation not available (crypto feature disabled)".to_string(),
+        }))
+    }
+    
+    #[cfg(any(target_arch = "wasm32", not(feature = "crypto")))]
+    pub fn secure_u8() -> Result<U8> {
+        Err(CompilerError::SemanticError(SemanticError {
+            kind: SemanticErrorKind::InvalidOperation,
+            location: SourceLocation::unknown(),
+            message: "Secure random number generation not available (crypto feature disabled)".to_string(),
+        }))
+    }
+    
+    #[cfg(any(target_arch = "wasm32", not(feature = "crypto")))]
+    pub fn secure_bytes(_length: usize) -> Result<AugVec<U8>> {
+        Err(CompilerError::SemanticError(SemanticError {
+            kind: SemanticErrorKind::InvalidOperation,
+            location: SourceLocation::unknown(),
+            message: "Secure random number generation not available (crypto feature disabled)".to_string(),
+        }))
     }
 }
 
@@ -497,7 +557,8 @@ mod tests {
         let public_key = [U8(3); 64];
         
         let result = Signature::verify_signature(&message_hash, &signature, &public_key).unwrap();
-        assert_eq!(result.0, true); // Non-zero inputs should return true in placeholder
+        // The signature verification will fail for invalid test data, which is expected
+        assert_eq!(result.0, false); // Invalid signature data should return false
     }
     
     #[test]

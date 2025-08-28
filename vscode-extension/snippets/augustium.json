@@ -16,5 +16,98 @@
             "}"
         ],
         "description": "Create a new function"
+    },
+    "Neural Network": {
+        "prefix": "neural",
+        "body": [
+            "use augustium::stdlib::ml::*;",
+            "",
+            "struct ${1:NeuralNetwork} {",
+            "    layers: Vec<Layer>,",
+            "    optimizer: Optimizer,",
+            "}",
+            "",
+            "impl ${1:NeuralNetwork} {",
+            "    fn new() -> Self {",
+            "        Self {",
+            "            layers: vec![",
+            "                Layer::dense(${2:784}, ${3:128}),",
+            "                Layer::relu(),",
+            "                Layer::dense(${3:128}, ${4:10}),",
+            "                Layer::softmax(),",
+            "            ],",
+            "            optimizer: Optimizer::adam(0.001),",
+            "        }",
+            "    }",
+            "    ",
+            "    fn forward(&self, input: &Tensor) -> Tensor {",
+            "        $0",
+            "    }",
+            "}"
+        ],
+        "description": "Create a neural network structure"
+    },
+    "Training Loop": {
+        "prefix": "train",
+        "body": [
+            "fn train_model(model: &mut ${1:Model}, dataset: &Dataset, epochs: u32) {",
+            "    for epoch in 0..epochs {",
+            "        let mut total_loss = 0.0;",
+            "        ",
+            "        for batch in dataset.batches(${2:32}) {",
+            "            let predictions = model.forward(&batch.inputs);",
+            "            let loss = loss_function(&predictions, &batch.targets);",
+            "            ",
+            "            model.backward(&loss);",
+            "            model.optimizer.step();",
+            "            ",
+            "            total_loss += loss.item();",
+            "        }",
+            "        ",
+            "        println!(\"Epoch {}: Loss = {:.4}\", epoch, total_loss / dataset.len());",
+            "    }",
+            "    $0",
+            "}"
+        ],
+        "description": "Create a training loop"
+    },
+    "Tensor Operations": {
+        "prefix": "tensor",
+        "body": [
+            "let ${1:tensor} = Tensor::${2|zeros,ones,randn,eye|}(vec![${3:3}, ${4:4}]);",
+            "let ${5:result} = ${1:tensor}.${6|matmul,relu,sigmoid,softmax,transpose|}($0);"
+        ],
+        "description": "Create tensor operations"
+    },
+    "Computer Vision Model": {
+        "prefix": "cnn",
+        "body": [
+            "use augustium::stdlib::ml::computer_vision::*;",
+            "",
+            "struct ${1:CNNModel} {",
+            "    conv1: Conv2D,",
+            "    conv2: Conv2D,",
+            "    fc: Dense,",
+            "}",
+            "",
+            "impl ${1:CNNModel} {",
+            "    fn new() -> Self {",
+            "        Self {",
+            "            conv1: Conv2D::new(${2:3}, ${3:32}, ${4:3}),",
+            "            conv2: Conv2D::new(${3:32}, ${5:64}, ${4:3}),",
+            "            fc: Dense::new(${6:1024}, ${7:10}),",
+            "        }",
+            "    }",
+            "    ",
+            "    fn forward(&self, x: &Tensor) -> Tensor {",
+            "        let x = self.conv1.forward(x).relu();",
+            "        let x = self.conv2.forward(&x).relu();",
+            "        let x = x.flatten();",
+            "        self.fc.forward(&x).softmax()",
+            "        $0",
+            "    }",
+            "}"
+        ],
+        "description": "Create a CNN model for computer vision"
     }
 }

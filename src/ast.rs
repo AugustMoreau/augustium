@@ -4,17 +4,18 @@
 //! of Augustium source code.
 
 use crate::error::SourceLocation;
+use serde::{Serialize, Deserialize};
 
 
 /// A complete Augustium source file
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceFile {
     pub items: Vec<Item>,
     pub location: SourceLocation,
 }
 
 /// Top-level items in an Augustium source file
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Item {
     Contract(Contract),
     Function(Function),
@@ -25,10 +26,11 @@ pub enum Item {
     Use(UseDeclaration),
     Const(ConstDeclaration),
     Module(Module),
+    OperatorImpl(OperatorImpl),
 }
 
 /// Contract definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Contract {
     pub name: Identifier,
     pub fields: Vec<Field>,
@@ -39,29 +41,32 @@ pub struct Contract {
 }
 
 /// Function definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Identifier,
+    pub type_parameters: Vec<TypeParameter>,
     pub parameters: Vec<Parameter>,
     pub return_type: Option<Type>,
     pub body: Block,
     pub visibility: Visibility,
     pub mutability: Mutability,
     pub attributes: Vec<Attribute>,
+    pub is_async: bool,
     pub location: SourceLocation,
 }
 
 /// Struct definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Struct {
     pub name: Identifier,
+    pub type_parameters: Vec<TypeParameter>,
     pub fields: Vec<Field>,
     pub visibility: Visibility,
     pub location: SourceLocation,
 }
 
 /// Enum definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Enum {
     pub name: Identifier,
     pub variants: Vec<EnumVariant>,
@@ -70,7 +75,7 @@ pub struct Enum {
 }
 
 /// Enum variant
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnumVariant {
     pub name: Identifier,
     pub fields: Option<Vec<Type>>,
@@ -78,16 +83,18 @@ pub struct EnumVariant {
 }
 
 /// Trait definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trait {
     pub name: Identifier,
+    pub type_parameters: Vec<TypeParameter>,
     pub functions: Vec<TraitFunction>,
+    pub associated_types: Vec<AssociatedType>,
     pub visibility: Visibility,
     pub location: SourceLocation,
 }
 
 /// Trait function signature
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraitFunction {
     pub name: Identifier,
     pub parameters: Vec<Parameter>,
@@ -96,16 +103,18 @@ pub struct TraitFunction {
 }
 
 /// Implementation block
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Impl {
     pub trait_name: Option<Identifier>,
     pub type_name: Identifier,
+    pub type_parameters: Vec<TypeParameter>,
+    pub where_clause: Option<WhereClause>,
     pub functions: Vec<Function>,
     pub location: SourceLocation,
 }
 
 /// Use declaration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseDeclaration {
     pub path: Vec<Identifier>,
     pub alias: Option<Identifier>,
@@ -113,7 +122,7 @@ pub struct UseDeclaration {
 }
 
 /// Constant declaration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstDeclaration {
     pub name: Identifier,
     pub type_annotation: Type,
@@ -123,7 +132,7 @@ pub struct ConstDeclaration {
 }
 
 /// Module declaration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Module {
     pub name: Identifier,
     pub items: Vec<Item>,
@@ -132,7 +141,7 @@ pub struct Module {
 }
 
 /// Event definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
     pub name: Identifier,
     pub fields: Vec<EventField>,
@@ -140,7 +149,7 @@ pub struct Event {
 }
 
 /// Event field
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventField {
     pub name: Identifier,
     pub type_annotation: Type,
@@ -149,7 +158,7 @@ pub struct EventField {
 }
 
 /// Function modifier
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Modifier {
     pub name: Identifier,
     pub parameters: Vec<Parameter>,
@@ -158,7 +167,7 @@ pub struct Modifier {
 }
 
 /// Struct or contract field
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
     pub name: Identifier,
     pub type_annotation: Type,
@@ -167,7 +176,7 @@ pub struct Field {
 }
 
 /// Function parameter
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Parameter {
     pub name: Identifier,
     pub type_annotation: Type,
@@ -175,14 +184,14 @@ pub struct Parameter {
 }
 
 /// Block of statements
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
     pub statements: Vec<Statement>,
     pub location: SourceLocation,
 }
 
 /// Statement types
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement {
     Expression(Expression),
     Let(LetStatement),
@@ -197,10 +206,11 @@ pub enum Statement {
     Require(RequireStatement),
     Assert(AssertStatement),
     Revert(RevertStatement),
+    Macro(MacroInvocation),
 }
 
 /// Let statement (variable declaration)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LetStatement {
     pub name: Identifier,
     pub type_annotation: Option<Type>,
@@ -210,14 +220,14 @@ pub struct LetStatement {
 }
 
 /// Return statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReturnStatement {
     pub value: Option<Expression>,
     pub location: SourceLocation,
 }
 
 /// If statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IfStatement {
     pub condition: Expression,
     pub then_block: Block,
@@ -226,7 +236,7 @@ pub struct IfStatement {
 }
 
 /// While loop
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WhileStatement {
     pub condition: Expression,
     pub body: Block,
@@ -234,7 +244,7 @@ pub struct WhileStatement {
 }
 
 /// For loop
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ForStatement {
     pub variable: Identifier,
     pub iterable: Expression,
@@ -243,7 +253,7 @@ pub struct ForStatement {
 }
 
 /// Match statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchStatement {
     pub expression: Expression,
     pub arms: Vec<MatchArm>,
@@ -251,7 +261,7 @@ pub struct MatchStatement {
 }
 
 /// Match arm
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchArm {
     pub pattern: Pattern,
     pub guard: Option<Expression>,
@@ -260,7 +270,7 @@ pub struct MatchArm {
 }
 
 /// Pattern for match statements
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Pattern {
     Literal(Literal),
     Identifier(Identifier),
@@ -268,29 +278,57 @@ pub enum Pattern {
     Tuple(Vec<Pattern>),
     Struct {
         name: Identifier,
-        fields: Vec<(Identifier, Pattern)>,
+        fields: Vec<FieldPattern>,
+        rest: bool, // for .. patterns
     },
     Enum {
         name: Identifier,
         variant: Identifier,
         fields: Option<Vec<Pattern>>,
     },
+    Array {
+        patterns: Vec<Pattern>,
+        rest: Option<Box<Pattern>>, // for [a, b, ..rest] patterns
+    },
+    Slice {
+        patterns: Vec<Pattern>,
+        rest_position: Option<usize>,
+    },
+    Range {
+        start: Option<Box<Pattern>>,
+        end: Option<Box<Pattern>>,
+        inclusive: bool,
+    },
+    Or(Vec<Pattern>), // for a | b | c patterns
+    Guard {
+        pattern: Box<Pattern>,
+        condition: Expression,
+    },
+    Binding {
+        name: Identifier,
+        pattern: Box<Pattern>,
+    },
+    Reference {
+        mutable: bool,
+        pattern: Box<Pattern>,
+    },
+    Deref(Box<Pattern>),
 }
 
 /// Break statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BreakStatement {
     pub location: SourceLocation,
 }
 
 /// Continue statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContinueStatement {
     pub location: SourceLocation,
 }
 
 /// Emit statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmitStatement {
     pub event: Identifier,
     pub arguments: Vec<Expression>,
@@ -298,7 +336,7 @@ pub struct EmitStatement {
 }
 
 /// Require statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequireStatement {
     pub condition: Expression,
     pub message: Option<Expression>,
@@ -306,7 +344,7 @@ pub struct RequireStatement {
 }
 
 /// Assert statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssertStatement {
     pub condition: Expression,
     pub message: Option<Expression>,
@@ -314,14 +352,14 @@ pub struct AssertStatement {
 }
 
 /// Revert statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RevertStatement {
     pub message: Option<Expression>,
     pub location: SourceLocation,
 }
 
 /// Expression types
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Expression {
     Literal(Literal),
     Identifier(Identifier),
@@ -337,6 +375,7 @@ pub enum Expression {
     Range(RangeExpression),
     Closure(ClosureExpression),
     Block(Block),
+    Await(AwaitExpression),
     
     // Machine Learning expressions
     MLCreateModel(MLCreateModelExpression),
@@ -349,17 +388,18 @@ pub enum Expression {
 }
 
 /// Literal values
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Literal {
     Integer(u64),
     Float(f64),
     String(String),
     Boolean(bool),
     Address(String),
+    Null,
 }
 
 /// Binary expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinaryExpression {
     pub left: Box<Expression>,
     pub operator: BinaryOperator,
@@ -368,7 +408,7 @@ pub struct BinaryExpression {
 }
 
 /// Binary operators
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BinaryOperator {
     // Arithmetic
     Add,
@@ -398,7 +438,7 @@ pub enum BinaryOperator {
 }
 
 /// Unary expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnaryExpression {
     pub operator: UnaryOperator,
     pub operand: Box<Expression>,
@@ -406,7 +446,7 @@ pub struct UnaryExpression {
 }
 
 /// Unary operators
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UnaryOperator {
     Not,
     Minus,
@@ -414,7 +454,7 @@ pub enum UnaryOperator {
 }
 
 /// Function call expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CallExpression {
     pub function: Box<Expression>,
     pub arguments: Vec<Expression>,
@@ -422,7 +462,7 @@ pub struct CallExpression {
 }
 
 /// Field access expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldAccessExpression {
     pub object: Box<Expression>,
     pub field: Identifier,
@@ -430,7 +470,7 @@ pub struct FieldAccessExpression {
 }
 
 /// Index expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexExpression {
     pub object: Box<Expression>,
     pub index: Box<Expression>,
@@ -438,21 +478,21 @@ pub struct IndexExpression {
 }
 
 /// Array expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArrayExpression {
     pub elements: Vec<Expression>,
     pub location: SourceLocation,
 }
 
 /// Tuple expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TupleExpression {
     pub elements: Vec<Expression>,
     pub location: SourceLocation,
 }
 
 /// Struct construction expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructExpression {
     pub name: Identifier,
     pub fields: Vec<(Identifier, Expression)>,
@@ -460,7 +500,7 @@ pub struct StructExpression {
 }
 
 /// Assignment expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssignmentExpression {
     pub target: Box<Expression>,
     pub operator: AssignmentOperator,
@@ -469,7 +509,7 @@ pub struct AssignmentExpression {
 }
 
 /// Assignment operators
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AssignmentOperator {
     Assign,
     AddAssign,
@@ -479,7 +519,7 @@ pub enum AssignmentOperator {
 }
 
 /// Range expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RangeExpression {
     pub start: Option<Box<Expression>>,
     pub end: Option<Box<Expression>>,
@@ -488,7 +528,7 @@ pub struct RangeExpression {
 }
 
 /// Closure expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClosureExpression {
     pub parameters: Vec<Parameter>,
     pub return_type: Option<Type>,
@@ -497,7 +537,7 @@ pub struct ClosureExpression {
 }
 
 /// Type annotations
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Type {
     // Primitive types
     U8,
@@ -533,6 +573,11 @@ pub enum Type {
     
     // User-defined types
     Named(Identifier),
+    Generic {
+        base: Box<Type>,
+        type_args: Vec<Type>,
+    },
+    TypeParameter(Identifier),
     
     // Function types
     Function {
@@ -564,24 +609,28 @@ pub enum Type {
         size: Option<u64>,
     },
     MLMetrics,
+    
+    // Async types
+    Future(Box<Type>),
+    Stream(Box<Type>),
 }
 
 /// Identifier
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Identifier {
     pub name: String,
     pub location: SourceLocation,
 }
 
 /// Visibility modifiers
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Visibility {
     Public,
     Private,
 }
 
 /// Mutability modifiers
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Mutability {
     Mutable,
     Immutable,
@@ -590,15 +639,156 @@ pub enum Mutability {
 }
 
 /// Function attributes
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attribute {
     pub name: String,
     pub arguments: Vec<String>,
     pub location: SourceLocation,
 }
 
+/// Type parameter for generics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeParameter {
+    pub name: Identifier,
+    pub bounds: Vec<TypeBound>,
+    pub default: Option<Type>,
+    pub location: SourceLocation,
+}
+
+/// Type bounds for generics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TypeBound {
+    Trait(Identifier),
+    Lifetime(Identifier),
+}
+
+/// Associated type in traits
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssociatedType {
+    pub name: Identifier,
+    pub bounds: Vec<TypeBound>,
+    pub default: Option<Type>,
+    pub location: SourceLocation,
+}
+
+/// Where clause for complex bounds
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WhereClause {
+    pub predicates: Vec<WherePredicate>,
+    pub location: SourceLocation,
+}
+
+/// Where predicate
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum WherePredicate {
+    Type {
+        ty: Type,
+        bounds: Vec<TypeBound>,
+    },
+    Lifetime {
+        lifetime: Identifier,
+        bounds: Vec<Identifier>,
+    },
+}
+
+/// Await expression for async
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AwaitExpression {
+    pub expression: Box<Expression>,
+    pub location: SourceLocation,
+}
+
+/// Macro invocation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MacroInvocation {
+    pub name: Identifier,
+    pub arguments: Vec<MacroArgument>,
+    pub location: SourceLocation,
+}
+
+/// Macro argument
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MacroArgument {
+    Expression(Expression),
+    Type(Type),
+    Pattern(Pattern),
+    Statement(Statement),
+    Literal(String),
+}
+
+/// Field pattern for struct destructuring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FieldPattern {
+    pub name: Identifier,
+    pub pattern: Pattern,
+    pub shorthand: bool, // for { x } instead of { x: x }
+}
+
+/// Operator implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OperatorImpl {
+    pub operator: OverloadableOperator,
+    pub type_name: Identifier,
+    pub parameters: Vec<Parameter>,
+    pub return_type: Option<Type>,
+    pub body: Block,
+    pub location: SourceLocation,
+}
+
+/// Operators that can be overloaded
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum OverloadableOperator {
+    // Arithmetic operators
+    Add,        // +
+    Subtract,   // -
+    Multiply,   // *
+    Divide,     // /
+    Modulo,     // %
+    
+    // Comparison operators
+    Equal,      // ==
+    NotEqual,   // !=
+    Less,       // <
+    LessEqual,  // <=
+    Greater,    // >
+    GreaterEqual, // >=
+    
+    // Bitwise operators
+    BitAnd,     // &
+    BitOr,      // |
+    BitXor,     // ^
+    LeftShift,  // <<
+    RightShift, // >>
+    
+    // Unary operators
+    Negate,     // -x
+    Not,        // !x
+    BitNot,     // ~x
+    
+    // Assignment operators
+    AddAssign,     // +=
+    SubtractAssign, // -=
+    MultiplyAssign, // *=
+    DivideAssign,   // /=
+    
+    // Index operators
+    Index,      // []
+    IndexMut,   // []= (mutable indexing)
+    
+    // Call operator
+    Call,       // ()
+    
+    // Conversion operators
+    Into,       // into()
+    From,       // from()
+    
+    // Display operators
+    Display,    // fmt::Display
+    Debug,      // fmt::Debug
+}
+
 /// ML Create Model expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLCreateModelExpression {
     pub model_type: String,
     pub config: Vec<(String, Expression)>,
@@ -606,7 +796,7 @@ pub struct MLCreateModelExpression {
 }
 
 /// ML Train expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLTrainExpression {
     pub model: Box<Expression>,
     pub dataset: Box<Expression>,
@@ -615,7 +805,7 @@ pub struct MLTrainExpression {
 }
 
 /// ML Predict expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLPredictExpression {
     pub model: Box<Expression>,
     pub input: Box<Expression>,
@@ -623,7 +813,7 @@ pub struct MLPredictExpression {
 }
 
 /// ML Forward pass expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLForwardExpression {
     pub model: Box<Expression>,
     pub input: Box<Expression>,
@@ -631,7 +821,7 @@ pub struct MLForwardExpression {
 }
 
 /// ML Backward pass expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLBackwardExpression {
     pub model: Box<Expression>,
     pub gradients: Box<Expression>,
@@ -639,7 +829,7 @@ pub struct MLBackwardExpression {
 }
 
 /// Tensor operation expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TensorOpExpression {
     pub operation: TensorOperation,
     pub operands: Vec<Expression>,
@@ -647,7 +837,7 @@ pub struct TensorOpExpression {
 }
 
 /// Matrix operation expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatrixOpExpression {
     pub operation: MatrixOperation,
     pub operands: Vec<Expression>,
@@ -655,7 +845,7 @@ pub struct MatrixOpExpression {
 }
 
 /// Tensor operations
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TensorOperation {
     Add,
     Subtract,
@@ -671,7 +861,7 @@ pub enum TensorOperation {
 }
 
 /// Matrix operations
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MatrixOperation {
     Add,
     Subtract,
@@ -718,7 +908,7 @@ impl Expression {
         
         match self {
             Expression::Literal(lit) => match lit {
-                Literal::Integer(_) | Literal::Float(_) | Literal::String(_) | Literal::Boolean(_) | Literal::Address(_) => {
+                Literal::Integer(_) | Literal::Float(_) | Literal::String(_) | Literal::Boolean(_) | Literal::Address(_) | Literal::Null => {
                     // For now, return a dummy location for literals
                     // In a real implementation, literals would carry location info
                     DUMMY_LOCATION.get_or_init(|| SourceLocation::unknown())
@@ -737,6 +927,7 @@ impl Expression {
             Expression::Range(expr) => &expr.location,
             Expression::Closure(expr) => &expr.location,
             Expression::Block(block) => &block.location,
+            Expression::Await(expr) => &expr.location,
             
             // ML expressions
             Expression::MLCreateModel(expr) => &expr.location,
@@ -766,6 +957,7 @@ impl Statement {
             Statement::Require(stmt) => &stmt.location,
             Statement::Assert(stmt) => &stmt.location,
             Statement::Revert(stmt) => &stmt.location,
+            Statement::Macro(stmt) => &stmt.location,
         }
     }
 }
@@ -847,6 +1039,19 @@ impl fmt::Display for Type {
                 }
             }
             Type::MLMetrics => write!(f, "MLMetrics"),
+            Type::Future(inner) => write!(f, "Future<{}>", inner),
+            Type::Stream(inner) => write!(f, "Stream<{}>", inner),
+            Type::Generic { base, type_args } => {
+                write!(f, "{}<", base)?;
+                for (i, arg) in type_args.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", arg)?;
+                }
+                write!(f, ">")
+            }
+            Type::TypeParameter(name) => write!(f, "{}", name.name),
         }
     }
 }
