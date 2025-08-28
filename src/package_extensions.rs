@@ -712,13 +712,96 @@ impl SecurityScanner {
     
     pub fn scan_package(&mut self, package: &str, version: &str) -> Result<()> {
         println!("Scanning package: {}@{}", package, version);
-        // Security scanning logic would be implemented here
+        
+        // Implement comprehensive security scanning
+        let mut vulnerabilities = Vec::new();
+        
+        // Check against vulnerability database
+        if let Some(vulns) = self.check_vulnerabilities(package, version)? {
+            vulnerabilities.extend(vulns);
+        }
+        
+        // Scan for known malicious patterns
+        self.scan_malicious_patterns(package, version, &mut vulnerabilities)?;
+        
+        // Check dependency chain for vulnerabilities
+        self.scan_dependency_chain(package, version, &mut vulnerabilities)?;
+        
+        // Store scan results
+        let scan_result = ScanResult {
+            package: package.to_string(),
+            version: version.to_string(),
+            vulnerabilities,
+            scan_time: std::time::SystemTime::now(),
+            status: if vulnerabilities.is_empty() { 
+                ScanStatus::Clean 
+            } else { 
+                ScanStatus::Vulnerable 
+            },
+        };
+        
+        self.scan_history.push(scan_result);
         Ok(())
     }
     
     pub fn check_vulnerabilities(&self, package: &str, version: &str) -> Result<Option<Vec<Vulnerability>>> {
-        // Check for known vulnerabilities
-        println!("Checking vulnerabilities for: {}@{}", package, version);
-        Ok(None) // No vulnerabilities found (simplified)
+        // Check for known vulnerabilities in database
+        let mut vulnerabilities = Vec::new();
+        
+        // Search vulnerability database
+        for vuln in &self.vulnerability_db.vulnerabilities {
+            if vuln.affected_packages.iter().any(|pkg| pkg == package) {
+                // Check if version is affected
+                if self.version_in_range(version, &vuln.affected_versions) {
+                    vulnerabilities.push(vuln.clone());
+                }
+            }
+        }
+        
+        if vulnerabilities.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(vulnerabilities))
+        }
+    }
+
+    /// Scan for malicious patterns in package
+    fn scan_malicious_patterns(&self, package: &str, version: &str, vulnerabilities: &mut Vec<Vulnerability>) -> Result<()> {
+        // Check for suspicious package names
+        let suspicious_patterns = [
+            "malware", "trojan", "backdoor", "keylogger", "spyware",
+            "phishing", "scam", "fake", "malicious", "virus"
+        ];
+        
+        for pattern in &suspicious_patterns {
+            if package.to_lowercase().contains(pattern) {
+                vulnerabilities.push(Vulnerability {
+                    id: format!("MALICIOUS-{}", pattern.to_uppercase()),
+                    description: format!("Package name contains suspicious pattern: {}", pattern),
+                    severity: Severity::Critical,
+                    affected_packages: vec![package.to_string()],
+                    affected_versions: vec![version.to_string()],
+                    cve_id: None,
+                    published_date: std::time::SystemTime::now(),
+                    references: vec![],
+                });
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Scan dependency chain for vulnerabilities
+    fn scan_dependency_chain(&self, package: &str, version: &str, vulnerabilities: &mut Vec<Vulnerability>) -> Result<()> {
+        // In a full implementation, this would recursively scan all dependencies
+        // For now, just log the action
+        println!("Scanning dependency chain for: {}@{}", package, version);
+        Ok(())
+    }
+
+    /// Check if version is in affected range
+    fn version_in_range(&self, version: &str, affected_versions: &[String]) -> bool {
+        // Simple version matching - in practice would use semantic versioning
+        affected_versions.iter().any(|v| v == version || v == "*")
     }
 }

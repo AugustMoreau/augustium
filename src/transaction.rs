@@ -591,11 +591,38 @@ impl TransactionExecutor {
     fn execute_contract_call(&mut self, tx: &Transaction, gas_used: &mut u64, gas_costs: &GasCosts) -> Result<Vec<u8>> {
         *gas_used += gas_costs.contract_call;
         
-        // TODO: Implement actual contract execution (AVM integration)
-        // For now, just transfer value if any
+        // Implement actual contract execution with AVM integration
         if let Some(to) = tx.to {
+            // Transfer value if any
             if !tx.value.is_zero() {
                 self.state.transfer(tx.from, to, tx.value)?;
+            }
+            
+            // Get contract account
+            if let Some(account) = self.state.get_account_readonly(&to) {
+                if account.is_contract {
+                    // Execute contract code using AVM
+                    let mut avm = crate::avm::AVM::new();
+                    
+                    // Set up execution context
+                    avm.set_caller(tx.from);
+                    avm.set_value(tx.value);
+                    avm.set_gas_limit(*gas_used);
+                    
+                    // Load contract code
+                    if let Some(code) = &account.code {
+                        // Execute the contract
+                        match avm.execute_contract(code, &tx.data) {
+                            Ok(result) => {
+                                *gas_used = avm.gas_used();
+                                return Ok(result);
+                            }
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    }
+                }
             }
         }
         
