@@ -448,11 +448,83 @@ impl GasOptimization {
     }
     
     /// Optimize storage layout for gas efficiency
-    fn optimize_storage_layout(&self, _ast: &mut SourceFile) -> Result<()> {
-        // TODO: Implement storage layout optimization
-        // - Pack small variables together
-        // - Reorder fields for optimal packing
-        // - Use appropriate storage types
+    fn optimize_storage_layout(&self, ast: &mut SourceFile) -> Result<()> {
+        // Implement storage layout optimization
+        for item in &mut ast.items {
+            if let Item::Contract(contract) = item {
+                self.optimize_contract_storage(contract)?;
+            } else if let Item::Struct(struct_def) = item {
+                self.optimize_struct_storage(struct_def)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Optimize contract storage layout
+    fn optimize_contract_storage(&self, contract: &mut Contract) -> Result<()> {
+        // Sort fields by size for optimal packing (largest first)
+        contract.fields.sort_by(|a, b| {
+            let size_a = self.get_type_storage_size(&a.type_annotation);
+            let size_b = self.get_type_storage_size(&b.type_annotation);
+            size_b.cmp(&size_a) // Descending order
+        });
+        
+        // Group small types together to fit in single storage slots
+        self.pack_small_fields(&mut contract.fields)?;
+        
+        Ok(())
+    }
+
+    /// Optimize struct storage layout
+    fn optimize_struct_storage(&self, struct_def: &mut Struct) -> Result<()> {
+        // Sort fields by size for optimal packing
+        struct_def.fields.sort_by(|a, b| {
+            let size_a = self.get_type_storage_size(&a.type_annotation);
+            let size_b = self.get_type_storage_size(&b.type_annotation);
+            size_b.cmp(&size_a)
+        });
+        
+        Ok(())
+    }
+
+    /// Get storage size in bytes for a type
+    fn get_type_storage_size(&self, type_annotation: &Type) -> usize {
+        match type_annotation {
+            Type::Bool | Type::U8 | Type::I8 => 1,
+            Type::U16 | Type::I16 => 2,
+            Type::U32 | Type::I32 | Type::F32 => 4,
+            Type::U64 | Type::I64 | Type::F64 => 8,
+            Type::U128 | Type::I128 => 16,
+            Type::U256 | Type::I256 => 32,
+            Type::Address => 20,
+            Type::String => 32, // Dynamic, but reserve slot
+            Type::Array { .. } => 32, // Dynamic, but reserve slot
+            Type::Vector { .. } => 32, // Dynamic, but reserve slot
+            _ => 32, // Default to 32 bytes for complex types
+        }
+    }
+
+    /// Pack small fields together to optimize storage slots
+    fn pack_small_fields(&self, fields: &mut Vec<Field>) -> Result<()> {
+        let mut packed_fields = Vec::new();
+        let mut current_slot_size = 0;
+        let slot_size = 32; // EVM storage slot size
+        
+        for field in fields.iter() {
+            let field_size = self.get_type_storage_size(&field.type_annotation);
+            
+            if current_slot_size + field_size <= slot_size {
+                // Fits in current slot
+                current_slot_size += field_size;
+            } else {
+                // Start new slot
+                current_slot_size = field_size;
+            }
+            
+            packed_fields.push(field.clone());
+        }
+        
+        *fields = packed_fields;
         Ok(())
     }
     

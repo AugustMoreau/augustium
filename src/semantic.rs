@@ -585,9 +585,48 @@ impl SemanticAnalyzer {
     }
     
     /// Analyze a use declaration
-    fn analyze_use(&mut self, _use_decl: &UseDeclaration) -> Result<()> {
-        // For now, we'll skip use declaration analysis
-        // In a full implementation, this would handle module imports
+    fn analyze_use(&mut self, use_decl: &UseDeclaration) -> Result<()> {
+        // Validate the module path exists
+        let module_path = &use_decl.path;
+        
+        // For now, we'll do basic validation
+        if module_path.is_empty() {
+            return Err(SemanticError::new(
+                SemanticErrorKind::InvalidOperation,
+                use_decl.location.clone(),
+                "Empty use declaration path".to_string(),
+            ).into());
+        }
+        
+        // Add imported symbols to current scope
+        match &use_decl.import_type {
+            UseImportType::All => {
+                // Import all symbols from module (would need module resolution)
+            }
+            UseImportType::Specific(symbols) => {
+                for symbol_name in symbols {
+                    // Add symbol to scope (would need actual symbol resolution)
+                    let symbol = Symbol {
+                        name: symbol_name.clone(),
+                        symbol_type: SymbolType::Variable(Type::U32), // Placeholder
+                        location: use_decl.location.clone(),
+                        mutable: false,
+                    };
+                    self.current_scope.define(symbol_name.clone(), symbol)?;
+                }
+            }
+            UseImportType::Alias(original, alias) => {
+                // Import with alias
+                let symbol = Symbol {
+                    name: alias.clone(),
+                    symbol_type: SymbolType::Variable(Type::U32), // Placeholder
+                    location: use_decl.location.clone(),
+                    mutable: false,
+                };
+                self.current_scope.define(alias.clone(), symbol)?;
+            }
+        }
+        
         Ok(())
     }
     
@@ -875,19 +914,16 @@ impl SemanticAnalyzer {
     /// Analyze a for statement
     fn analyze_for_statement(&mut self, for_stmt: &ForStatement) -> Result<()> {
         // Analyze iterable expression
-        let _iterable_type = self.analyze_expression(&for_stmt.iterable)?;
+        let iterable_type = self.analyze_expression(&for_stmt.iterable)?;
         
-        // TODO: Check if iterable_type is actually iterable
-        // For now, we'll assume it's valid
+        // Check if iterable_type is actually iterable and infer element type
+        let element_type = self.check_iterable_and_get_element_type(&iterable_type, &for_stmt.iterable.location())?;
         
         // Create new scope for loop variable
         let for_scope = Scope::with_parent(self.current_scope.clone());
         let old_scope = std::mem::replace(&mut self.current_scope, for_scope);
         
-        // Add loop variable to scope
-        // TODO: Infer element type from iterable type
-        let element_type = Type::U32; // Placeholder
-        
+        // Add loop variable to scope with inferred element type
         let loop_var_symbol = Symbol {
             name: for_stmt.variable.name.clone(),
             symbol_type: SymbolType::Variable(element_type),
@@ -909,7 +945,7 @@ impl SemanticAnalyzer {
     /// Analyze a match statement
     fn analyze_match_statement(&mut self, match_stmt: &MatchStatement) -> Result<()> {
         // Analyze match expression
-        let _match_type = self.analyze_expression(&match_stmt.expression)?;
+        let match_type = self.analyze_expression(&match_stmt.expression)?;
         
         // Analyze each match arm
         for arm in &match_stmt.arms {
@@ -917,8 +953,8 @@ impl SemanticAnalyzer {
             let arm_scope = Scope::with_parent(self.current_scope.clone());
             let old_scope = std::mem::replace(&mut self.current_scope, arm_scope);
             
-            // TODO: Analyze pattern and extract variables
-            // For now, we'll skip pattern analysis
+            // Analyze pattern and extract variables
+            self.analyze_pattern(&arm.pattern, &match_type)?;
             
             // Analyze guard if present
             if let Some(guard) = &arm.guard {
@@ -947,12 +983,49 @@ impl SemanticAnalyzer {
     
     /// Analyze an emit statement
     fn analyze_emit_statement(&mut self, emit_stmt: &EmitStatement) -> Result<()> {
-        // Check if event exists
-        // TODO: Implement event lookup in contract scope
-        
-        // Analyze arguments
-        for arg in &emit_stmt.arguments {
-            self.analyze_expression(arg)?;
+        // Check if event exists in current contract scope
+        if let Some(contract_scope) = self.get_current_contract_scope() {
+            let event_symbol = contract_scope.lookup(&emit_stmt.event_name.name)
+                .ok_or_else(|| SemanticError::new(
+                    SemanticErrorKind::UndefinedSymbol(emit_stmt.event_name.name.clone()),
+                    emit_stmt.location.clone(),
+                    format!("Undefined event '{}'.", emit_stmt.event_name.name),
+                ))?;
+            
+            // Verify it's actually an event
+            match &event_symbol.symbol_type {
+                SymbolType::Event(param_types) => {
+                    // Check argument count and types
+                    if emit_stmt.arguments.len() != param_types.len() {
+                        return Err(SemanticError::new(
+                            SemanticErrorKind::InvalidOperation,
+                            emit_stmt.location.clone(),
+                            format!("Event '{}' expects {} arguments, got {}", 
+                                emit_stmt.event_name.name, param_types.len(), emit_stmt.arguments.len()),
+                        ).into());
+                    }
+                    
+                    // Check argument types
+                    for (i, arg) in emit_stmt.arguments.iter().enumerate() {
+                        let arg_type = self.analyze_expression(arg)?;
+                        if !self.types_compatible(&param_types[i], &arg_type) {
+                            return Err(SemanticError::new(
+                                SemanticErrorKind::TypeMismatch {
+                                    expected: format!("{:?}", param_types[i]),
+                                    found: format!("{:?}", arg_type),
+                                },
+                                arg.location().clone(),
+                                format!("Argument {} type mismatch", i + 1),
+                            ).into());
+                        }
+                    }
+                }
+                _ => return Err(SemanticError::new(
+                    SemanticErrorKind::InvalidOperation,
+                    emit_stmt.location.clone(),
+                    format!("'{}' is not an event", emit_stmt.event_name.name),
+                ).into())
+            }
         }
         
         Ok(())
@@ -1389,7 +1462,7 @@ impl SemanticAnalyzer {
     
     /// Analyze an index expression
     fn analyze_index_expression(&mut self, index_expr: &IndexExpression) -> Result<Type> {
-        let _object_type = self.analyze_expression(&index_expr.object)?;
+        let object_type = self.analyze_expression(&index_expr.object)?;
         let index_type = self.analyze_expression(&index_expr.index)?;
         
         // Index must be integer
@@ -1404,8 +1477,9 @@ impl SemanticAnalyzer {
             ).into());
         }
         
-        // TODO: Extract element type from array type
-        Ok(Type::U32) // Placeholder
+        // Extract element type from array/vector type
+        let element_type = self.extract_element_type(&object_type, &index_expr.location)?;
+        Ok(element_type)
     }
     
     /// Analyze an array expression
@@ -1455,9 +1529,31 @@ impl SemanticAnalyzer {
     }
     
     /// Analyze a struct expression
-    fn analyze_struct_expression(&mut self, _struct_expr: &StructExpression) -> Result<Type> {
-        // TODO: Implement struct expression analysis
-        Ok(Type::U32) // Placeholder
+    fn analyze_struct_expression(&mut self, struct_expr: &StructExpression) -> Result<Type> {
+        // Look up struct type definition
+        let struct_symbol = self.current_scope.lookup(&struct_expr.name.name)
+            .ok_or_else(|| SemanticError::new(
+                SemanticErrorKind::UndefinedSymbol(struct_expr.name.name.clone()),
+                struct_expr.location.clone(),
+                format!("Undefined struct type '{}'.", struct_expr.name.name),
+            ))?;
+        
+        let struct_type = match &struct_symbol.symbol_type {
+            SymbolType::Type(t) => t.clone(),
+            _ => return Err(SemanticError::new(
+                SemanticErrorKind::InvalidOperation,
+                struct_expr.location.clone(),
+                format!("'{}' is not a struct type", struct_expr.name.name),
+            ).into())
+        };
+        
+        // Analyze field expressions and check types
+        for field in &struct_expr.fields {
+            let field_type = self.analyze_expression(&field.value)?;
+            // TODO: Check field type compatibility with struct definition
+        }
+        
+        Ok(struct_type)
     }
     
     /// Analyze an assignment expression
@@ -1477,15 +1573,171 @@ impl SemanticAnalyzer {
             ).into());
         }
         
-        // TODO: Check if target is mutable
+        // Check if target is mutable
+        self.check_assignment_target_mutability(&assign_expr.target)?;
         
         Ok(target_type)
     }
     
     /// Analyze a range expression
-    fn analyze_range_expression(&mut self, _range_expr: &RangeExpression) -> Result<Type> {
-        // TODO: Implement range expression analysis
-        Ok(Type::U32) // Placeholder
+    fn analyze_range_expression(&mut self, range_expr: &RangeExpression) -> Result<Type> {
+        let start_type = self.analyze_expression(&range_expr.start)?;
+        let end_type = self.analyze_expression(&range_expr.end)?;
+        
+        // Both bounds must be integers
+        if !self.is_integer_type(&start_type) || !self.is_integer_type(&end_type) {
+            return Err(SemanticError::new(
+                SemanticErrorKind::TypeMismatch {
+                    expected: "integer type".to_string(),
+                    found: format!("start: {:?}, end: {:?}", start_type, end_type),
+                },
+                range_expr.location.clone(),
+                "Range bounds must be integers".to_string(),
+            ).into());
+        }
+        
+        // Return range type
+        Ok(Type::Range {
+            element_type: Box::new(start_type),
+            inclusive: range_expr.inclusive,
+        })
+    }
+
+    /// Check if a type is iterable and return element type
+    fn check_iterable_and_get_element_type(&self, iterable_type: &Type, location: &SourceLocation) -> Result<Type> {
+        match iterable_type {
+            Type::Array { element_type, .. } => Ok((**element_type).clone()),
+            Type::Vector { element_type, .. } => Ok((**element_type).clone()),
+            Type::String => Ok(Type::U8), // String iterates over bytes
+            Type::Range { element_type, .. } => Ok((**element_type).clone()),
+            _ => Err(SemanticError::new(
+                SemanticErrorKind::TypeMismatch {
+                    expected: "iterable type".to_string(),
+                    found: format!("{:?}", iterable_type),
+                },
+                location.clone(),
+                format!("Type {:?} is not iterable", iterable_type),
+            ).into())
+        }
+    }
+
+    /// Extract element type from array/vector type
+    fn extract_element_type(&self, container_type: &Type, location: &SourceLocation) -> Result<Type> {
+        match container_type {
+            Type::Array { element_type, .. } => Ok((**element_type).clone()),
+            Type::Vector { element_type, .. } => Ok((**element_type).clone()),
+            Type::String => Ok(Type::U8), // String indexing returns byte
+            _ => Err(SemanticError::new(
+                SemanticErrorKind::TypeMismatch {
+                    expected: "indexable type".to_string(),
+                    found: format!("{:?}", container_type),
+                },
+                location.clone(),
+                format!("Type {:?} cannot be indexed", container_type),
+            ).into())
+        }
+    }
+
+    /// Get current contract scope for event lookup
+    fn get_current_contract_scope(&self) -> Option<&Scope> {
+        // In a full implementation, this would track contract scopes
+        // For now, return current scope as placeholder
+        Some(&self.current_scope)
+    }
+
+    /// Analyze pattern and bind variables
+    fn analyze_pattern(&mut self, pattern: &Pattern, expected_type: &Type) -> Result<()> {
+        match pattern {
+            Pattern::Literal(literal) => {
+                // Check literal type matches expected
+                let literal_type = self.get_literal_type(literal);
+                if !self.types_compatible(&literal_type, expected_type) {
+                    return Err(SemanticError::new(
+                        SemanticErrorKind::TypeMismatch {
+                            expected: format!("{:?}", expected_type),
+                            found: format!("{:?}", literal_type),
+                        },
+                        SourceLocation::unknown(),
+                        "Pattern type mismatch".to_string(),
+                    ).into());
+                }
+            }
+            Pattern::Identifier(name) => {
+                // Bind variable with expected type
+                let symbol = Symbol {
+                    name: name.name.clone(),
+                    symbol_type: SymbolType::Variable(expected_type.clone()),
+                    location: name.location.clone(),
+                    mutable: false,
+                };
+                self.current_scope.define(name.name.clone(), symbol)?;
+            }
+            Pattern::Wildcard => {
+                // Wildcard matches anything
+            }
+            Pattern::Tuple(patterns) => {
+                if let Type::Tuple(element_types) = expected_type {
+                    if patterns.len() != element_types.len() {
+                        return Err(SemanticError::new(
+                            SemanticErrorKind::InvalidOperation,
+                            SourceLocation::unknown(),
+                            "Tuple pattern arity mismatch".to_string(),
+                        ).into());
+                    }
+                    for (pattern, expected) in patterns.iter().zip(element_types.iter()) {
+                        self.analyze_pattern(pattern, expected)?;
+                    }
+                }
+            }
+            _ => {
+                // Other pattern types would be implemented here
+            }
+        }
+        Ok(())
+    }
+
+    /// Check if assignment target is mutable
+    fn check_assignment_target_mutability(&self, target: &Expression) -> Result<()> {
+        match target {
+            Expression::Identifier(name) => {
+                if let Some(symbol) = self.current_scope.lookup(&name.name) {
+                    if !symbol.mutable {
+                        return Err(SemanticError::new(
+                            SemanticErrorKind::InvalidOperation,
+                            target.location().clone(),
+                            format!("Cannot assign to immutable variable '{}'", name.name),
+                        ).into());
+                    }
+                }
+            }
+            Expression::FieldAccess(_) => {
+                // Field access mutability would depend on the object and field
+                // For now, assume it's valid
+            }
+            Expression::Index(_) => {
+                // Array element assignment - check if array is mutable
+                // For now, assume it's valid
+            }
+            _ => {
+                return Err(SemanticError::new(
+                    SemanticErrorKind::InvalidOperation,
+                    target.location().clone(),
+                    "Invalid assignment target".to_string(),
+                ).into());
+            }
+        }
+        Ok(())
+    }
+
+    /// Get type of literal
+    fn get_literal_type(&self, literal: &Literal) -> Type {
+        match literal {
+            Literal::Integer(_) => Type::U64,
+            Literal::Float(_) => Type::F64,
+            Literal::String(_) => Type::String,
+            Literal::Boolean(_) => Type::Bool,
+            Literal::Address(_) => Type::Address,
+        }
     }
     
     /// Analyze a closure expression
